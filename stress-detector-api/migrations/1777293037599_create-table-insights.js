@@ -19,13 +19,9 @@ export const up = (pgm) => {
       type: 'VARCHAR(50)',
       notNull: true,
     },
-    activity_id: {
-      type: 'VARCHAR(50)',
-      notNull: true,
-    },
     weekly_summary_id: {
       type: 'VARCHAR(50)',
-      notNull: true,
+      notNull: false,
     },
     period_type: {
       type: 'VARCHAR(50)',
@@ -46,10 +42,11 @@ export const up = (pgm) => {
     'fk_insights.user_id_users.id',
     'FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE',
   );
+
   pgm.addConstraint(
     'insights',
-    'fk_insights.activity_id_activities.id',
-    'FOREIGN KEY(activity_id) REFERENCES activities(id) ON DELETE CASCADE',
+    'fk_insights.weekly_summary_id_weekly_summaries.id',
+    'FOREIGN KEY(weekly_summary_id) REFERENCES weekly_summaries(id) ON DELETE SET NULL',
   );
 };
 

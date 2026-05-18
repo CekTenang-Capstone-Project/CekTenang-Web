@@ -43,6 +43,10 @@ export const up = (pgm) => {
       type: 'FLOAT',
       notNull: true,
     },
+    stress_trend: {
+      type: 'VARCHAR(20)',
+      notNull: false,
+    },
     created_at: {
       type: 'TIMESTAMPTZ',
       notNull: true,
@@ -50,14 +54,9 @@ export const up = (pgm) => {
   });
 
   pgm.addConstraint(
-    'insights',
-    'fk_insights.user_id_users.id',
+    'weekly_summaries',
+    'fk_weekly_summaries.user_id_users.id',
     'FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE',
-  );
-  pgm.addConstraint(
-    'insights',
-    'fk_insights.activity_id_activities.id',
-    'FOREIGN KEY(activity_id) REFERENCES activities(id) ON DELETE CASCADE',
   );
 };
 

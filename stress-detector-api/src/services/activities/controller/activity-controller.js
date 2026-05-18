@@ -8,48 +8,41 @@ import ActivityRepositories from '../repositories/activity-repositories.js';
 
 export const createActivity = async (req, res, next) => {
   const {
-    studyHours,
+    activityDate,
     sleepHours,
-    classAttendance,
-    examFrequency,
-    assignmentLoad,
-    socialActivity,
-    caffeineIntake,
-    physicalExercise,
-    socialMediaUsage,
-    screenTime,
-    familyIncomeLevel,
-    peerPresure,
-    familySupport,
-    anxietyLevel,
+    studyHours,
+    screenTimeHours,
+    socialMediaHours,
+    physicalActivityMinutes,
+    caffeineIntakeMg,
+    moodScore,
     fatigueLevel,
-    mood,
-    workHours,
-    exerciseMinutes,
-    date,
+    assignmentLoad,
+    deadlinePressure,
+    socialInteractionScore,
+    financialWorryScore,
+    healthConditionScore,
   } = req.validated;
-  const { userId } = req.user;
+
+  // Fixed: was req.user.userId (always undefined). JWT payload uses { id }.
+  const { id: userId } = req.user;
+
   const activity = await ActivityRepositories.createActivity({
     userId,
-    studyHours,
+    activityDate,
     sleepHours,
-    classAttendance,
-    examFrequency,
-    assignmentLoad,
-    socialActivity,
-    caffeineIntake,
-    physicalExercise,
-    socialMediaUsage,
-    screenTime,
-    familyIncomeLevel,
-    peerPresure,
-    familySupport,
-    anxietyLevel,
+    studyHours,
+    screenTimeHours,
+    socialMediaHours,
+    physicalActivityMinutes,
+    caffeineIntakeMg,
+    moodScore,
     fatigueLevel,
-    mood,
-    workHours,
-    exerciseMinutes,
-    date,
+    assignmentLoad,
+    deadlinePressure,
+    socialInteractionScore,
+    financialWorryScore,
+    healthConditionScore,
   });
 
   if (!activity) {
@@ -60,16 +53,24 @@ export const createActivity = async (req, res, next) => {
 };
 
 export const getActivities = async (req, res) => {
-  const { userId } = req.user;
+  const { id: userId } = req.user;
+  const limit = parseInt(req.query.limit) || 20;
+  const offset = parseInt(req.query.offset) || 0;
 
-  const activities = await ActivityRepositories.getActivitiesByUser(userId);
+  const activities = await ActivityRepositories.getActivitiesByUser(userId, {
+    limit,
+    offset,
+  });
 
-  return response(res, 200, 'Aktivitas berhasil ditampilkan', { activities });
+  return response(res, 200, 'Aktivitas berhasil ditampilkan', {
+    activities,
+    pagination: { limit, offset },
+  });
 };
 
 export const getActivityById = async (req, res, next) => {
   const { id } = req.params;
-  const { userId } = req.user;
+  const { id: userId } = req.user;
 
   const activity = await ActivityRepositories.getActivityById(id);
 
@@ -77,7 +78,7 @@ export const getActivityById = async (req, res, next) => {
     return next(new NotFoundError('Aktivitas tidak ditemukan'));
   }
 
-  const isOwner = await ActivityRepositories.verifyActivityAccess(id, userId);
+  const isOwner = await ActivityRepositories.verifyActivityOwner(id, userId);
 
   if (!isOwner) {
     return next(
@@ -90,7 +91,7 @@ export const getActivityById = async (req, res, next) => {
 
 export const deleteActivity = async (req, res, next) => {
   const { id } = req.params;
-  const { userId } = req.user;
+  const { id: userId } = req.user;
 
   const isOwner = await ActivityRepositories.verifyActivityOwner(id, userId);
 

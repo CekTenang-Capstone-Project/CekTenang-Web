@@ -46,10 +46,11 @@ export const up = (pgm) => {
     'fk_stress_predictions.user_id_users.id',
     'FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE',
   );
+
   pgm.addConstraint(
     'stress_predictions',
-    'fk_stress_predictions.activity_id_activities.id',
-    'FOREIGN KEY(activity_id) REFERENCES activities(id) ON DELETE CASCADE',
+    'fk_stress_predictions.activity_id_daily_activities.id',
+    'FOREIGN KEY(activity_id) REFERENCES daily_activities(id) ON DELETE CASCADE',
   );
 };
 

@@ -10,13 +10,17 @@ export const shorthands = undefined;
  * @returns {Promise<void> | void}
  */
 export const up = (pgm) => {
-  pgm.createTable('activities', {
+  pgm.createTable('daily_activities', {
     id: {
       type: 'VARCHAR(50)',
       primaryKey: true,
     },
     user_id: {
       type: 'VARCHAR(50)',
+      notNull: true,
+    },
+    activity_date: {
+      type: 'DATE',
       notNull: true,
     },
     sleep_hours: {
@@ -52,10 +56,10 @@ export const up = (pgm) => {
       notNull: true,
     },
     assignment_load: {
-      type: 'FLOAT',
+      type: 'INTEGER',
       notNull: true,
     },
-    deadlines_pressure: {
+    deadline_pressure: {
       type: 'INTEGER',
       notNull: true,
     },
@@ -78,8 +82,8 @@ export const up = (pgm) => {
   });
 
   pgm.addConstraint(
-    'activities',
-    'fk_activities.user_id_users.id',
+    'daily_activities',
+    'fk_daily_activities.user_id_users.id',
     'FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE',
   );
 };
