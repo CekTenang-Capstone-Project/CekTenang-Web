@@ -61,7 +61,7 @@ function Sidebar() {
       {/* Sidebar */}
       <aside
         className={`
-          fixed left-0 top-0 z-40 flex min-h-screen w-[248px] flex-col
+          fixed left-0 top-0 z-40 flex min-h-screen w-(248px) flex-col
           bg-[#0B0B0C] px-9 py-10 text-white
           shadow-[18px_0_40px_rgba(0,0,0,0.35)]
           transition-transform duration-300
