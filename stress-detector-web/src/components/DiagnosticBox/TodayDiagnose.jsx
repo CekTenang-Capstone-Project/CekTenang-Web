@@ -1,6 +1,6 @@
-import { useLanguage } from "../contexts/LanguageContext";
+import { useLanguage } from "../../contexts/LanguageContext";
 
-function TodayDiagnose() {
+function TodayDiagnose({studyTime, taskLoad, deadlinePressure, physicalActivity, sleep}) {
   const { t } = useLanguage();
 
   const getAcademicMetric = (type, value) => {
@@ -80,33 +80,33 @@ function TodayDiagnose() {
     }
   };
 
-  const academicData = [
+    const academicData = [
     {
-      type: "studyTime",
-      label: t.StudyTimeTitle,
-      value: 6.5,
+        type: "studyTime",
+        label: t.StudyTimeTitle,
+        value: studyTime,
     },
     {
-      type: "taskLoad",
-      label: t.TaskLoadTitle,
-      value: "High",
+        type: "taskLoad",
+        label: t.TaskLoadTitle,
+        value: taskLoad,
     },
     {
-      type: "deadlinePressure",
-      label: t.DeadlinePressureTitle,
-      value: 90,
+        type: "deadlinePressure",
+        label: t.DeadlinePressureTitle,
+        value: deadlinePressure,
     },
     {
-      type: "physicalActivity",
-      label: t.PhysicalActivityTitle,
-      value: 45,
+        type: "physicalActivity",
+        label: t.PhysicalActivityTitle,
+        value: physicalActivity,
     },
     {
-      type: "sleep",
-      label: t.LastNightSleepTitle,
-      value: 5.5,
+        type: "sleep",
+        label: t.LastNightSleepTitle,
+        value: sleep,
     },
-  ];
+    ];
 
   return (
     <div className="space-y-5">
