@@ -4,7 +4,7 @@ import ActivityFormPanel from "../components/ActivityInput/ActivityFormPanel";
 import useActivityForm from "../components/ActivityInput/useActivityForm";
 import { useLanguage } from "../contexts/LanguageContext";
 
-function ActivitiesPage() {
+function LogActivitiesPage() {
   const { t } = useLanguage();
   const { error, form, handleChange, handleSubmit, isSubmitting, message } =
     useActivityForm(t);
@@ -29,4 +29,4 @@ function ActivitiesPage() {
   );
 }
 
-export default ActivitiesPage;
+export default LogActivitiesPage;

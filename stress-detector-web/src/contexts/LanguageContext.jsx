@@ -20,7 +20,7 @@ const translations = {
     PhysicalActivityTitle: "Aktivitas Fisik",
     MoodScoreTitle: "Skor Suasana Hati",
     FatigueLevelTitle: "Tingkat Kelelahan",
-    NewInsight: "Insight terbaru",
+    NewInsight: "Rekomendasi untuk Anda",
 
     // LeftPanel
     Heading1: "Analisis Tingkat Stres Berbasis AI",
@@ -66,9 +66,10 @@ const translations = {
 
     // Sidebar
     ActSdbr: "Catatan Aktivitas",
-    CekStresSdbr: "Cek Stres",
+    CekStresSdbr: "Insights & Rekomendasi",
     ReqomendationSdbr: "Rekomendasi",
     ProfileSdbr: "Profile Saya",
+    StressCheck: "Cek Stres Baru",
     LogoutSdbr: "Keluar",
 
     // Catat Aktivitas Pages
@@ -119,7 +120,6 @@ const translations = {
     TaskLoadTitle: "Beban Tugas",
     LastNightSleepTitle: "Tidur (Semalam)",
     MinuteText: "Mnt",
-    PersonalAIRecommendationTitle: "Rekomendasi AI Personal",
     RecommendationDesc: "Berdasarkan analisis terbaru, peningkatan stres Anda sebesar 12% berkorelasi kuat dengan tekanan deadline yang mencapai 90% dan beban tugas yang tinggi. Meskipun mood score Anda tetap positif (8.4), level kelelahan mulai meningkat karena kurang tidur (5.5 jam).",
     StudySuggestionTitle: "Saran Belajar",
     StudySuggestionDesc: "Gunakan teknik Pomodoro untuk 3 jam ke depan guna mengurangi beban kognitif tugas.",
@@ -170,7 +170,7 @@ const translations = {
     PhysicalActivityTitle: "Physical Activity",
     MoodScoreTitle: "Mood Score",
     FatigueLevelTitle: "Fatigue Level",
-    NewInsight: "Latest Insight",
+    NewInsight: "Recommendation for you",
 
     // LeftPanel
     Heading1: "AI-Based Stress Level Analysis",
@@ -216,9 +216,10 @@ const translations = {
 
     // Sidebar
     ActSdbr: "Activity Log",
-    CekStresSdbr: "Stress Check",
+    CekStresSdbr: "Insights & Recommendations",
     ReqomendationSdbr: "Recommendation",
     ProfileSdbr: "My Profile",
+    StressCheck: "New Stress Check",
     LogoutSdbr: "Logout",
 
     // Catat Aktivitas Pages
@@ -271,7 +272,6 @@ const translations = {
     
     LastNightSleepTitle: "Sleep (Last Night)",
     MinuteText: "Min",
-    PersonalAIRecommendationTitle: "Personal AI Recommendation",
     RecommendationDesc: "Based on the latest analysis, your stress level has increased by 12%, strongly correlated with deadline pressure reaching 90% and a high task workload. Although your mood score remains positive (8.4), fatigue levels are starting to rise due to insufficient sleep (5.5 hours).",
     StudySuggestionTitle: "Study Recommendation",
     StudySuggestionDesc: "Use the Pomodoro technique for the next 3 hours to reduce cognitive workload.",
@@ -303,6 +303,34 @@ const translations = {
     PredictionFilterData: "Filter Data",
     PredictionLastUpdate: "Last Update",
 
+  },
+
+  // Recommendations (additional keys)
+  rec: {
+    RecommendationPageTitle: "Your Recommendations",
+    RecommendationSubtitle: "Latest analysis shows accumulating task load combined with low HRV. We've adjusted your study strategy for today.",
+    RecommendationHeroTitle: "AI Personal Coach",
+    RecommendationHeroGreeting: "Hello Andi, based on 3 upcoming deadlines this week and your resting heart rate increasing by 5 bpm, you are currently in Academic Distress.",
+    RecommendationHeroBullets: [
+      "Prioritize Calculus tasks today for only 90 minutes. Don't force yourself to finish everything at once.",
+      "Use Deep Work technique between 09:00 - 11:00. This is your best cognitive window today.",
+      "Avoid social media entirely before 17:00 to prevent dopamine fatigue."
+    ],
+    RecommendationHeroButton: "Provide Detailed Strategy",
+
+    PriorityTodayTitle: "Today's Priorities",
+    PriorityViewAll: "View full schedule",
+
+    LongTermTitle: "Long-term Suggestions",
+    SuggestionTimeBlockingTitle: "Time Blocking Strategy",
+    SuggestionTimeBlockingTag: "Productivity",
+    SuggestionTimeBlockingDesc: "Use your calendar to separate study, rest, and social time rigidly to reduce mental confusion.",
+    SuggestionCognitiveTitle: "Cognitive Relaxation Technique",
+    SuggestionCognitiveTag: "Mental",
+    SuggestionCognitiveDesc: "Do 5 minutes of positive visualization every time you start a difficult task.",
+    SuggestionCaffeineTitle: "Academic Caffeine Management",
+    SuggestionCaffeineTag: "Health",
+    SuggestionCaffeineDesc: "Limit coffee only before 12 PM. Excessive caffeine in the afternoon harms your sleep quality."
   },
 };
 
