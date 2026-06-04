@@ -1,8 +1,8 @@
-import { activityNumberFields } from "./activityFormConstants";
+import { activityNumberFields, getYesterdayDateString } from "./activityFormConstants";
 
 function buildActivityPayload(form, status) {
   return {
-    activityDate: form.activityDate || new Date().toISOString().slice(0, 10),
+    activityDate: getYesterdayDateString(),
     activityStatus: status,
     note: form.dailyNote,
     ...Object.fromEntries(

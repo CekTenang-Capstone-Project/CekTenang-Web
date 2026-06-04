@@ -23,7 +23,19 @@ function LogActivitiesPage() {
   const { user } = useUser();
   const { id } = useParams();
   const activityId = id || null;
-  const { error, form, handleChange, handleSubmit, handleSaveDraft, handleCloseAnalysis, isSubmitting, message, showAnalysis } = useActivityForm(t, null, activityId);
+  const {
+    analysisPrediction,
+    error,
+    form,
+    handleChange,
+    handleSubmit,
+    handleSaveDraft,
+    handleCloseAnalysis,
+    isAnalysisLoading,
+    isSubmitting,
+    message,
+    showAnalysis,
+  } = useActivityForm(t, null, activityId);
   const journalDate = formatJournalDate(form.activityDate, t.DashboardDateLocale);
 
   return (
@@ -95,7 +107,8 @@ function LogActivitiesPage() {
         </form>
 
         <ActivityAnalysisPanel
-          form={form}
+          isLoading={isAnalysisLoading}
+          prediction={analysisPrediction}
           t={t}
           visible={showAnalysis}
           onClose={handleCloseAnalysis}

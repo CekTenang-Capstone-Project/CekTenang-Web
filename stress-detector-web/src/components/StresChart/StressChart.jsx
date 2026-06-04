@@ -1,8 +1,9 @@
+import PropTypes from "prop-types";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, } from "recharts";
 import { useLanguage } from "../../contexts/LanguageContext";
 import { useTheme } from "../../contexts/ThemeContext";
 
-function StressChart() {
+function StressChart({ data = [] }) {
   const { t } = useLanguage();
   const { theme } = useTheme();
   const rootStyle = typeof window !== "undefined"
@@ -16,20 +17,13 @@ function StressChart() {
     text: rootStyle?.getPropertyValue("--text").trim() || "#ffffff",
   };
   void theme;
-  const data = [
-  { day: `${t.Senin}`, value: 70 },
-  { day: `${t.Selasa}`, value: 1 },
-  { day: `${t.Rabu}`, value: 50 },
-  { day: `${t.Kamis}`, value: 70 },
-  { day: `${t.Jumat}`, value: 65 },
-  { day: `${t.Sabtu}`, value: 72 },
-  { day: `${t.Minggu}`, value: 55 },
-  ];
 
+  const filledData = data.filter((item) => item.hasStressData);
   const average = Math.round(
-    data.reduce((sum, item) => sum + item.value, 0) / data.length
+    filledData.length > 0
+      ? filledData.reduce((sum, item) => sum + (item.stress_score || 0), 0) / filledData.length
+      : 0
   );
-
 
   return (
     <div className="theme-card rounded-2xl p-4 border w-full h-full">
@@ -40,7 +34,7 @@ function StressChart() {
         </p>
 
         <p className="text-blue-400 font-medium">
-          Average {average}
+          {t.AverageText} {average}
         </p>
       </div>
 
@@ -61,7 +55,7 @@ function StressChart() {
             />
 
             <XAxis
-              dataKey="day"
+              dataKey="label"
               axisLine={false}
               tickLine={false}
               tick={{ fill: themeColors.textMuted, fontSize: 12 }}
@@ -84,7 +78,7 @@ function StressChart() {
 
             <Line
               type="monotone"
-              dataKey="value"
+              dataKey="stress_score"
               stroke="#3b82f6"
               strokeWidth={3}
               dot={{
@@ -102,5 +96,14 @@ function StressChart() {
     </div>
   );
 }
+
+StressChart.propTypes = {
+  data: PropTypes.arrayOf(PropTypes.shape({
+    label: PropTypes.string,
+    stress_score: PropTypes.number,
+    hasStressData: PropTypes.bool,
+    prediction_date: PropTypes.string,
+  })),
+};
 
 export default StressChart;

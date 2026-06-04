@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import Layout from "../../layouts/Layout";
 import ActivityHistoryFilters from "../components/ActivityHistory/ActivityHistoryFilters";
 import ActivityHistoryList from "../components/ActivityHistory/ActivityHistoryList";
@@ -8,11 +9,13 @@ import { useUser } from "../contexts/UserContext";
 
 function ActivityHistoryPage() {
   const { user } = useUser();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const initialStatusFilter = searchParams.get("status") || "all";
   const [activityHistoryData, setActivityHistoryData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const [statusFilter, setStatusFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState(initialStatusFilter);
   const [dateFilter, setDateFilter] = useState("all");
   const [sortOption, setSortOption] = useState("newest");
   const [currentPage, setCurrentPage] = useState(1);
@@ -104,6 +107,17 @@ function ActivityHistoryPage() {
 
   const handleStatusFilter = (value) => {
     setStatusFilter(value);
+    setSearchParams((currentParams) => {
+      const nextParams = new URLSearchParams(currentParams);
+
+      if (value === "all") {
+        nextParams.delete("status");
+      } else {
+        nextParams.set("status", value);
+      }
+
+      return nextParams;
+    });
     setCurrentPage(1);
   };
 

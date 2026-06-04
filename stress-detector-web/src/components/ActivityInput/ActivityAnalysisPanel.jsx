@@ -1,10 +1,27 @@
 import PropTypes from "prop-types";
-import getStressIndex from "./getStressIndex";
 
-function getStressCategory(score, t) {
+function getStressLabel(stressLevel, t) {
+  const normalizedLevel = String(stressLevel || "").toLowerCase();
+
+  if (normalizedLevel === "low") {
+    return t.LowText;
+  }
+
+  if (normalizedLevel === "medium" || normalizedLevel === "moderate") {
+    return t.MediumText;
+  }
+
+  if (normalizedLevel === "high") {
+    return t.HighText;
+  }
+
+  return stressLevel || "-";
+}
+
+function getStressCategory(score, stressLevel, t) {
   if (score <= 20) {
     return { 
-      label: t.LowText, 
+      label: getStressLabel(stressLevel, t),
       color: "text-emerald-400",
       bgcolor: "to-emerald-950/60",
       tag: "text-emerald-300",
@@ -14,7 +31,7 @@ function getStressCategory(score, t) {
 
   if (score <= 45) {
     return { 
-      label: t.MediumText, 
+      label: getStressLabel(stressLevel, t),
       color: "text-blue-400",
       bgcolor: "to-blue-950/60",
       tag: "text-blue-300",
@@ -23,8 +40,7 @@ function getStressCategory(score, t) {
   }
 
   return { 
-    label: 
-    t.HighText, 
+    label: getStressLabel(stressLevel, t),
     color: "text-red-400" ,
     bgcolor: "to-red-950/60",
     tag: "text-red-300",
@@ -32,13 +48,24 @@ function getStressCategory(score, t) {
   };
 }
 
-function ActivityAnalysisPanel({ form, t, visible = true, onClose }) {
+function normalizeStressScore(score) {
+  const value = Number(score);
+
+  if (!Number.isFinite(value)) {
+    return null;
+  }
+
+  return Math.round(value <= 1 ? value * 100 : value);
+}
+
+function ActivityAnalysisPanel({ isLoading = false, prediction = null, t, visible = true, onClose }) {
   if (!visible) {
     return null;
   }
 
-  const stressIndex = getStressIndex(form);
-  const stressCategory = getStressCategory(stressIndex, t);
+  const stressScore = normalizeStressScore(prediction?.stress_score);
+  const stressCategory = getStressCategory(stressScore ?? 0, prediction?.stress_level, t);
+  const hasPrediction = stressScore !== null;
 
   return (
     <div
@@ -76,18 +103,32 @@ function ActivityAnalysisPanel({ form, t, visible = true, onClose }) {
           </div>
 
           <div className="text-center">
-            <div className="flex items-start justify-center gap-2">
-              <span className={`text-7xl font-extrabold ${stressCategory.color}`}>
-                {stressIndex}
-              </span>
-              <span className="theme-muted mt-4 text-xl font-bold">%</span>
-            </div>
-            <p className={`mt-2 text-xl font-bold ${stressCategory.color}`}>
-              {stressCategory.label}
-            </p>
-            <p className="theme-muted mx-auto mt-4 max-w-xs text-sm leading-relaxed">
-              {t.ActivityStressSummary}
-            </p>
+            {isLoading || !hasPrediction ? (
+              <div className="py-8">
+                <div className="mx-auto h-12 w-12 animate-spin rounded-full border-4 border-blue-300/20 border-t-blue-300" />
+                <p className="theme-text mt-5 text-lg font-bold">
+                  Menunggu hasil analisis AI...
+                </p>
+                <p className="theme-muted mx-auto mt-3 max-w-xs text-sm leading-relaxed">
+                  Skor stres akan ditampilkan setelah model AI menyimpan hasil prediksi.
+                </p>
+              </div>
+            ) : (
+              <>
+                <div className="flex items-start justify-center gap-2">
+                  <span className={`text-7xl font-extrabold ${stressCategory.color}`}>
+                    {stressScore}
+                  </span>
+                  <span className="theme-muted mt-4 text-xl font-bold">%</span>
+                </div>
+                <p className={`mt-2 text-xl font-bold ${stressCategory.color}`}>
+                  {stressCategory.label}
+                </p>
+                <p className="theme-muted mx-auto mt-4 max-w-xs text-sm leading-relaxed">
+                  {t.ActivityStressSummary}
+                </p>
+              </>
+            )}
           </div>
         </section>
       </div>
@@ -96,7 +137,11 @@ function ActivityAnalysisPanel({ form, t, visible = true, onClose }) {
 }
 
 ActivityAnalysisPanel.propTypes = {
-  form: PropTypes.objectOf(PropTypes.oneOfType([PropTypes.string, PropTypes.number])).isRequired,
+  isLoading: PropTypes.bool,
+  prediction: PropTypes.shape({
+    stress_level: PropTypes.string,
+    stress_score: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  }),
   t: PropTypes.objectOf(PropTypes.string).isRequired,
   visible: PropTypes.bool,
   onClose: PropTypes.func,

@@ -5,8 +5,9 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { useTheme } from "../../contexts/ThemeContext";
+import PropTypes from "prop-types";
 
-const chartData = [
+const fallbackChartData = [
   { name: "Tinggi", value: 33 },
   { name: "Sedang", value: 45 },
   { name: "Rendah", value: 22 },
@@ -18,9 +19,10 @@ const COLORS = [
   "#4ade80",
 ];
 
-function StressIntensityChart({ avgScore = 74 }) {
+function StressIntensityChart({ avgScore = 74, data = fallbackChartData }) {
   const { theme } = useTheme();
   void theme;
+  const chartData = data.length > 0 ? data : fallbackChartData;
 
   const renderCustomLabel = () => (
     <text
@@ -82,5 +84,13 @@ function StressIntensityChart({ avgScore = 74 }) {
     </div>
   );
 }
+
+StressIntensityChart.propTypes = {
+  avgScore: PropTypes.number,
+  data: PropTypes.arrayOf(PropTypes.shape({
+    name: PropTypes.string,
+    value: PropTypes.number,
+  })),
+};
 
 export default StressIntensityChart;

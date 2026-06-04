@@ -1,5 +1,20 @@
-const initialActivityForm = {
-  activityDate: new Date().toISOString().slice(0, 10),
+const getLocalDateString = (date = new Date()) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+};
+
+const getYesterdayDateString = (date = new Date()) => {
+  const yesterday = new Date(date);
+  yesterday.setDate(yesterday.getDate() - 1);
+
+  return getLocalDateString(yesterday);
+};
+
+const createInitialActivityForm = () => ({
+  activityDate: getYesterdayDateString(),
   sleepHours: "",
   studyHours: "",
   screenTimeHours: "",
@@ -10,7 +25,9 @@ const initialActivityForm = {
   fatigueLevel: "0",
   assignmentLoad: "0",
   deadlinePressure: "0",
-};
+});
+
+const initialActivityForm = createInitialActivityForm();
 
 const activityNumberFields = [
   "sleepHours",
@@ -24,4 +41,10 @@ const activityNumberFields = [
   "deadlinePressure",
 ];
 
-export { activityNumberFields, initialActivityForm };
+export {
+  activityNumberFields,
+  createInitialActivityForm,
+  getLocalDateString,
+  getYesterdayDateString,
+  initialActivityForm,
+};

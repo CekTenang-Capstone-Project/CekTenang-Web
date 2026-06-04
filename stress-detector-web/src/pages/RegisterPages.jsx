@@ -6,10 +6,10 @@ import { useLanguage } from "../contexts/LanguageContext";
 
 // Asset
 import logo from "../assets/img/logo.png";
-import google from "../assets/img/google-color-svgrepo-com.svg"
 
 // Komponent
 import ButtonSubmit from "../components/ButtonSubmit";
+import GoogleAuthButton from "../components/GoogleAuthButton";
 import InputEmail from "../components/InputEmail";
 import InputName from "../components/InputName";
 import InputPassword from "../components/InputPassword";
@@ -217,29 +217,7 @@ function RegisterPage() {
               </div>
 
               {/* Google */}
-              <button
-                type="button"
-                className="
-                  w-full
-                  h-12
-                  rounded-xl
-                  border theme-border
-                  theme-card
-                  text-sm
-                  font-medium
-                  theme-hover
-                  transition
-
-                  flex items-center justify-center gap-3
-                "
-              >
-                <span>{t.Google}</span>
-                <img
-                  src={google}
-                  alt="Google"
-                  className="w-5 h-5 object-contain"
-                />
-              </button>
+              <GoogleAuthButton onSuccess={() => navigate("/dashboard")} />
 
               {/* Switch */}
               <p className="theme-muted text-sm text-center pt-2">

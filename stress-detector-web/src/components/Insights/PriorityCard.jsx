@@ -11,12 +11,17 @@ function PriorityCard({
     switch (level?.toUpperCase()) {
       case "URGENT":
         return "bg-red-600 text-white";
+      case "HIGH":
       case "PENTING":
         return "bg-orange-600 text-white";
+      case "MEDIUM":
       case "SEDANG":
         return "bg-blue-600 text-white";
+      case "LOW":
+      case "RENDAH":
+        return "bg-emerald-600 text-white";
       default:
-        return "bg-red-600 text-white";
+        return "bg-blue-600 text-white";
     }
   };
 

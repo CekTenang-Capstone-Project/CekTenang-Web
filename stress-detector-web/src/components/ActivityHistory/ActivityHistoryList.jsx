@@ -25,12 +25,42 @@ function formatDate(date) {
   });
 }
 
+function parsePredictionDate(dateValue) {
+  if (!dateValue) {
+    return null;
+  }
+
+  const date = new Date(dateValue);
+
+  if (Number.isNaN(date.getTime())) {
+    return null;
+  }
+
+  return date;
+}
+
+function getDisplayDate(item) {
+  return parsePredictionDate(item.predictionDate) || item.datetime;
+}
+
 function formatTime(date) {
   return date.toLocaleTimeString("id-ID", {
     hour: "2-digit",
     minute: "2-digit",
     hour12: false,
   });
+}
+
+function getTimezoneLabel(date) {
+  const offsetHours = -date.getTimezoneOffset() / 60;
+
+  if (offsetHours === 7) return "WIB";
+  if (offsetHours === 8) return "WITA";
+  if (offsetHours === 9) return "WIT";
+
+  return Intl.DateTimeFormat("id-ID", { timeZoneName: "short" })
+    .formatToParts(date)
+    .find((part) => part.type === "timeZoneName")?.value || "";
 }
 
 function ActivityHistoryList({ errorMessage = "", isLoading = false, items }) {
@@ -75,8 +105,10 @@ function ActivityHistoryList({ errorMessage = "", isLoading = false, items }) {
         {items.map((item) => (
           <div key={item.id} className="grid gap-3 px-5 py-4 text-sm md:grid-cols-[1.3fr_2.4fr_1fr_1fr_0.9fr] md:items-center">
             <div>
-              <p className="theme-text text-sm font-semibold">{formatDate(item.datetime)}</p>
-              <p className="theme-muted text-xs mt-1">{formatTime(item.datetime)} WIB</p>
+              <p className="theme-text text-sm font-semibold">{formatDate(getDisplayDate(item))}</p>
+              <p className="theme-muted text-xs mt-1">
+                {formatTime(item.datetime)} {getTimezoneLabel(item.datetime)}
+              </p>
             </div>
 
             <div>
@@ -114,6 +146,7 @@ ActivityHistoryList.propTypes = {
     PropTypes.shape({
       id: PropTypes.string,
       datetime: PropTypes.instanceOf(Date),
+      predictionDate: PropTypes.string,
       stressScore: PropTypes.number,
       scoreLabel: PropTypes.string,
       status: PropTypes.string,

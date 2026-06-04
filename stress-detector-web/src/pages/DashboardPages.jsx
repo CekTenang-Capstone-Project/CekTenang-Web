@@ -9,6 +9,59 @@ import calender from  "../assets/icons/calendar.svg"
 import TodayDiagnose from "../components/DiagnosticBox/TodayDiagnose";
 // import staricon from "../assets/icons/star.png" // Tidak digunakan
 import api from "../services/api"; // Import service API
+import { getActivityHistory } from "../services/activityService";
+
+const getLocalDateKey = (date) => {
+  const parsedDate = date instanceof Date ? date : new Date(date);
+
+  if (Number.isNaN(parsedDate.getTime())) {
+    return "";
+  }
+
+  const year = parsedDate.getFullYear();
+  const month = String(parsedDate.getMonth() + 1).padStart(2, "0");
+  const day = String(parsedDate.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+};
+
+const addDays = (date, amount) => {
+  const nextDate = new Date(date);
+  nextDate.setDate(nextDate.getDate() + amount);
+  nextDate.setHours(0, 0, 0, 0);
+  return nextDate;
+};
+
+const getActivityDateKey = (item) =>
+  getLocalDateKey(
+    item?.prediction?.prediction_date ||
+    item?.activity?.activity_date ||
+    item?.datetime,
+  );
+
+const getNumberField = (data, snakeCaseName, camelCaseName) => {
+  const value = data?.[snakeCaseName] ?? data?.[camelCaseName];
+  const numberValue = Number(value);
+
+  return Number.isFinite(numberValue) ? numberValue : 0;
+};
+
+const mergeHistoryItem = (item) => {
+  if (!item) {
+    return null;
+  }
+
+  return {
+    ...item.activity,
+    ...item.prediction,
+    id: item.id,
+    activity_date: item.prediction?.prediction_date || item.activity?.activity_date,
+    activity_status: item.activity?.activity_status,
+    status: item.status,
+    stress_score: item.stressScore,
+    stressScore: item.stressScore,
+  };
+};
 
 function DashboardPage() {
   const { t } = useLanguage();
@@ -19,10 +72,10 @@ function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [currentActivity, setCurrentActivity] = useState(null);
-  const [incompleteYesterdayActivity, setIncompleteYesterdayActivity] = useState(null);
+  const [draftActivity, setDraftActivity] = useState(null);
   const [stressTrendData, setStressTrendData] = useState([]);
 
-  const sekarang = new Date();
+  const currentDate = new Date();
   const formatActivityDate = (dateString) => {
     if (!dateString) return "";
     const date = new Date(dateString);
@@ -35,7 +88,7 @@ function DashboardPage() {
   };
 
   // Format tanggal hari ini untuk greeting default
-  const todayFormattedDate = sekarang.toLocaleDateString(t.DashboardDateLocale, {
+  const todayFormattedDate = currentDate.toLocaleDateString(t.DashboardDateLocale, {
     weekday: "long",
     day: "numeric",
     month: "long",
@@ -47,67 +100,72 @@ function DashboardPage() {
       setLoading(true);
       setError(null);
       try {
-        const token = localStorage.getItem("accessToken");
-        if (!token) {
-          throw new Error("No access token found. Please log in.");
+        const today = new Date();
+        const historyResponse = await getActivityHistory();
+
+        if (historyResponse.error) {
+          throw new Error(historyResponse.message);
         }
 
-        // 1. Ambil aktivitas spesifik jika paramActivityId ada, jika tidak ambil yang terbaru
+        const history = historyResponse.data || [];
+        const startDate = addDays(today, -6);
+        const startDateKey = getLocalDateKey(startDate);
+        const todayDateKey = getLocalDateKey(today);
+        const sortedHistory = [...history].sort((a, b) => b.datetime - a.datetime);
+        const sevenDayItems = sortedHistory.filter((item) => {
+          const activityDateKey = getActivityDateKey(item);
+          return (
+            activityDateKey &&
+            activityDateKey >= startDateKey &&
+            activityDateKey <= todayDateKey
+          );
+        });
+
+        setDraftActivity(sevenDayItems.find((item) => item.status === "Draft") || null);
+
+        const rolling7Days = sortedHistory
+          .filter((item) => item.status !== "Draft")
+          .slice(0, 7)
+          .reverse()
+          .map((item) => {
+            const itemDate = item.prediction?.prediction_date || item.datetime;
+            const date = new Date(itemDate);
+
+            return {
+              label: date.toLocaleDateString(t.DashboardDateLocale, {
+                day: "numeric",
+                month: "short",
+              }),
+              stress_score: item.stressScore,
+              hasStressData: true,
+              prediction_date: getLocalDateKey(itemDate),
+            };
+          });
+
+        setStressTrendData(rolling7Days);
+
+        // 1. Ambil aktivitas spesifik jika paramActivityId ada, jika tidak ambil data selesai terbaru.
         let activityToDisplay = null;
         if (paramActivityId) {
-          const response = await api.get(`/activities/${paramActivityId}`, {
-            headers: { Authorization: `Bearer ${token}` },
-          });
-          const rawData = response.data.data;
-          // Jika data dibungkus dalam properti 'activity', gabungkan dengan 'prediction'
-          activityToDisplay = rawData.activity 
-            ? { ...rawData.activity, ...rawData.prediction } 
-            : rawData;
-        } else {
-          try {
-            const response = await api.get("/activities/latest", {
-              headers: { Authorization: `Bearer ${token}` },
-            });
+          const selectedHistoryItem = sortedHistory.find(
+            (item) => String(item.id) === String(paramActivityId),
+          );
+
+          if (selectedHistoryItem) {
+            activityToDisplay = mergeHistoryItem(selectedHistoryItem);
+          } else {
+            const response = await api.get(`/activities/${paramActivityId}`);
             const rawData = response.data.data;
-            // Lakukan normalisasi yang sama untuk data terbaru
+            // Jika data dibungkus dalam properti 'activity', gabungkan dengan 'prediction'
             activityToDisplay = rawData.activity 
               ? { ...rawData.activity, ...rawData.prediction } 
               : rawData;
-          } catch (err) {
-            // Jika 404 (tidak ditemukan), biarkan activityToDisplay tetap null
-            if (err.response?.status !== 404) {
-              throw err;
-            }
           }
+        } else {
+          const latestCompletedItem = sortedHistory.find((item) => item.status !== "Draft");
+          activityToDisplay = mergeHistoryItem(latestCompletedItem);
         }
         setCurrentActivity(activityToDisplay);
-
-        // 2. Periksa aktivitas kemarin yang belum lengkap
-        const yesterday = new Date();
-        yesterday.setDate(yesterday.getDate() - 1);
-        // Reset jam agar perbandingan tanggal akurat
-        yesterday.setHours(0, 0, 0, 0);
-        
-        const yesterdayDateString = yesterday.toISOString().split('T')[0]; // Format YYYY-MM-DD
-
-        const yesterdayActivityResponse = await api.get(`/activities?date=${yesterdayDateString}`, {
-            headers: { Authorization: `Bearer ${token}` },
-        });
-
-        const yesterdayActivity = yesterdayActivityResponse.data.data?.[0]; // Asumsi API mengembalikan array untuk query tanggal
-        
-        // Munculkan jika tidak ada data kemarin ATAU ada tapi belum selesai
-        if (!yesterdayActivity || yesterdayActivity.status !== "Selesai") {
-            setIncompleteYesterdayActivity(yesterdayActivity);
-        } else {
-            setIncompleteYesterdayActivity(null);
-        }
-
-        // 3. Ambil data tren stres 7 hari
-        const trendResponse = await api.get("/dashboard/trend", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        setStressTrendData(trendResponse.data.data);
 
       } catch (err) {
         console.error("Failed to fetch dashboard data:", err);
@@ -120,12 +178,8 @@ function DashboardPage() {
     fetchDashboardData();
   }, [paramActivityId, user.fullname, t.DashboardDateLocale]); // Tambahkan t.DashboardDateLocale ke dependencies
 
-  const handleViewIncompleteDetail = () => {
-    if (incompleteYesterdayActivity?.id) {
-      navigate(`/LogActivity/${incompleteYesterdayActivity.id}`);
-    } else {
-      navigate("/LogActivity");
-    }
+  const handleViewDraftDetail = () => {
+    navigate("/activity-history?status=draft");
   };
 
   const currentActivityFormattedDate = currentActivity ? formatActivityDate(currentActivity.activity_date) : "";
@@ -192,7 +246,7 @@ function DashboardPage() {
       </div>
 
     {/* Lengkapi catatan */}
-    {incompleteYesterdayActivity && (
+    {draftActivity && (
       <div className="col-span-1 lg:col-span-4">
         <div className="theme-card border border-orange-500/40 rounded-xl px-6 py-5">
           <div className="flex items-center justify-between">
@@ -212,7 +266,7 @@ function DashboardPage() {
               {/* Text */}
               <div>
                 <h2 className="text-orange-400 font-semibold text-lg">
-                  {incompleteYesterdayActivity?.status === "Draft" ? "Catatan Kemarin Belum Lengkap" : "Catatan Kemarin Belum Terisi"}
+                  Catatan Aktivitas Belum Lengkap
                 </h2>
 
                 <p className="theme-muted text-sm mt-1">
@@ -223,7 +277,7 @@ function DashboardPage() {
 
             {/* Button */}
             <button
-              onClick={handleViewIncompleteDetail}
+              onClick={handleViewDraftDetail}
               className="
                 bg-orange-400
                 hover:bg-orange-500
@@ -246,22 +300,22 @@ function DashboardPage() {
       <Datas
         metric="Mood"
         title={t.MoodScoreTitle}
-        value={currentActivity?.mood_score?.toString() || "0"}
+        value={getNumberField(currentActivity, "mood_score", "moodScore").toString()}
       />
       <Datas
         metric="Fatigue"
         title={t.FatigueLevelTitle}
-        value={currentActivity?.fatigue_level?.toString() || "0"}
+        value={getNumberField(currentActivity, "fatigue_level", "fatigueLevel").toString()}
       />
       <Datas
         metric="SocialMedia"
         title={t.SocialMediaTitle}
-        value={currentActivity?.social_media_hours?.toString() || "0"}
+        value={getNumberField(currentActivity, "social_media_hours", "socialMediaHours").toString()}
       />
       <Datas
         metric="Stress"
         title={t.StressScoreTitle}
-        value={currentActivity?.stress_score?.toString() || "0"}
+        value={getNumberField(currentActivity, "stress_score", "stressScore").toString()}
       />
 
 
@@ -277,12 +331,34 @@ function DashboardPage() {
       </h2>
 
       <TodayDiagnose
-        studyTime={currentActivity?.study_hours || 0}
-        taskLoad={currentActivity?.assignment_load || 0}
-        deadlinePressure={currentActivity?.deadline_pressure || 0}
-        physicalActivity={currentActivity?.physical_activity_minutes || 0}
-        sleep={currentActivity?.sleep_hours || 0}
+        studyTime={getNumberField(currentActivity, "study_hours", "studyHours")}
+        taskLoad={getNumberField(currentActivity, "assignment_load", "assignmentLoad")}
+        deadlinePressure={getNumberField(currentActivity, "deadline_pressure", "deadlinePressure")}
+        physicalActivity={getNumberField(currentActivity, "physical_activity_minutes", "physicalActivityMinutes")}
+        sleep={getNumberField(currentActivity, "sleep_hours", "sleepHours")}
       />
+    </div>
+
+    <div className="col-span-1 lg:col-span-4">
+      <div className="theme-card-muted rounded-2xl border p-5">
+        <div className="mb-4">
+          <p className="theme-text text-lg font-semibold">{t.ActivityDailyNoteTitle || "Catatan Harian"}</p>
+          <p className="theme-muted mt-2 text-sm leading-relaxed">
+            Riwayat catatan dari jurnal aktivitas terakhir.
+          </p>
+        </div>
+
+        <textarea
+          readOnly
+          value={currentActivity?.note || ""}
+          placeholder="Belum ada catatan aktivitas."
+          className="theme-input min-h-45 w-full resize-none rounded-2xl border p-4 text-sm outline-none"
+        />
+
+        <div className="theme-subtle mt-3 text-right text-xs">
+          {(currentActivity?.note || "").length}/1000
+        </div>
+      </div>
     </div>
 
   </div>

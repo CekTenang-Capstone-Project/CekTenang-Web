@@ -104,28 +104,55 @@ export const getActivityHistory = async () => {
 
     const activities = activitiesResponse.data.data?.activities || [];
     const predictions = predictionsResponse.data.data?.predictions || [];
-    const predictionsByActivityId = new Map(
-      predictions.map((prediction) => [prediction.activity_id, prediction]),
+    const activitiesById = new Map(
+      activities.map((activity) => [String(activity.id), activity]),
+    );
+    const predictedActivityIds = new Set(
+      predictions
+        .map((prediction) => prediction.activity_id)
+        .filter(Boolean)
+        .map(String),
     );
 
-    const history = activities.map((activity) => {
-      const prediction = predictionsByActivityId.get(activity.id);
-      const stressScore = normalizeScore(prediction?.stress_score);
-      const datetime = new Date(activity.created_at || activity.activity_date);
-      const isDraft = activity.activity_status === "draft";
+    const completedHistory = predictions.map((prediction) => {
+      const activity = activitiesById.get(String(prediction.activity_id));
+      const stressScore = normalizeScore(prediction.stress_score);
+      const datetime = new Date(prediction.created_at || prediction.prediction_date);
 
       return {
-        id: activity.id,
+        id: prediction.activity_id || prediction.id,
         datetime,
+        predictionDate: prediction.prediction_date,
         stressScore,
-        scoreLabel: !isDraft && prediction
-          ? getScoreLabel(prediction.stress_level, stressScore)
-          : "Belum selesai",
-        status: isDraft ? "Draft" : "Selesai",
+        stress_score: stressScore,
+        scoreLabel: getScoreLabel(prediction.stress_level, stressScore),
+        status: "Selesai",
         activity,
         prediction,
+        predictionId: prediction.id,
       };
     });
+
+    const draftHistory = activities
+      .filter((activity) => {
+        const isDraft = String(activity.activity_status || "").toLowerCase() === "draft";
+        return isDraft && !predictedActivityIds.has(String(activity.id));
+      })
+      .map((activity) => ({
+        id: activity.id,
+        datetime: new Date(activity.created_at || activity.activity_date),
+        predictionDate: null,
+        stressScore: 0,
+        stress_score: 0,
+        scoreLabel: "Belum selesai",
+        status: "Draft",
+        activity,
+        prediction: null,
+      }));
+
+    const history = [...completedHistory, ...draftHistory].sort(
+      (a, b) => b.datetime - a.datetime,
+    );
 
     return {
       error: false,

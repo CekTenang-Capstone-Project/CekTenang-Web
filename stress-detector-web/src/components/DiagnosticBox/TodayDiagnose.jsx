@@ -13,6 +13,21 @@ function TodayDiagnose({studyTime, taskLoad, deadlinePressure, physicalActivity,
         };
 
       case "taskLoad":
+        if (typeof value === "number") {
+          const percent = Math.min(value <= 10 ? value * 10 : value, 100);
+
+          return {
+            display: `${Math.round(percent)}%`,
+            width: percent,
+            color:
+              percent < 40
+                ? "bg-green-500"
+                : percent < 70
+                ? "bg-yellow-500"
+                : "bg-red-500",
+          };
+        }
+
         if (value === "Low") {
           return {
             display: t.LowText,

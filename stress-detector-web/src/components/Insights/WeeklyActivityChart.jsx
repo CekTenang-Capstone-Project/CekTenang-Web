@@ -7,8 +7,9 @@ import {
   YAxis,
 } from "recharts";
 import { useTheme } from "../../contexts/ThemeContext";
+import PropTypes from "prop-types";
 
-const data = [
+const fallbackData = [
   { day: "SEN", value: 58 },
   { day: "SEL", value: 55 },
   { day: "RAB", value: 60 },
@@ -18,7 +19,7 @@ const data = [
   { day: "MIN", value: 62 },
 ];
 
-function WeeklyActivityChart() {
+function WeeklyActivityChart({ data = fallbackData }) {
   const { theme } = useTheme();
   const rootStyle = typeof window !== "undefined"
     ? getComputedStyle(document.documentElement)
@@ -70,5 +71,13 @@ function WeeklyActivityChart() {
     </div>
   );
 }
+
+WeeklyActivityChart.propTypes = {
+  data: PropTypes.arrayOf(PropTypes.shape({
+    day: PropTypes.string,
+    value: PropTypes.number,
+    hasData: PropTypes.bool,
+  })),
+};
 
 export default WeeklyActivityChart;

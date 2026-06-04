@@ -1,12 +1,48 @@
 import { useState, useEffect } from "react";
-import { createActivity, updateActivity, getActivityById } from "../../services/activityService";
-import { initialActivityForm } from "./activityFormConstants";
+import { createActivity, updateActivity, getActivityById, getActivityHistory } from "../../services/activityService";
+import { createInitialActivityForm } from "./activityFormConstants";
 import buildActivityPayload from "./buildActivityPayload";
 
 const DRAFT_KEY = "activityDraft";
+const AI_POLL_DELAY_MS = 900;
+const AI_POLL_MAX_ATTEMPTS = 6;
+
+function wait(ms) {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
+}
+
+async function waitForPrediction(activityId) {
+  if (!activityId) {
+    return null;
+  }
+
+  for (let attempt = 0; attempt < AI_POLL_MAX_ATTEMPTS; attempt += 1) {
+    const historyResult = await getActivityHistory();
+
+    if (!historyResult.error) {
+      const matched = historyResult.data.find(
+        (item) => String(item.id) === String(activityId) && item.prediction,
+      );
+
+      if (matched?.prediction) {
+        return matched.prediction;
+      }
+    }
+
+    if (attempt < AI_POLL_MAX_ATTEMPTS - 1) {
+      await wait(AI_POLL_DELAY_MS);
+    }
+  }
+
+  return null;
+}
 
 function useActivityForm(t, initialData = null, activityId = null) {
   const [form, setForm] = useState(() => {
+    const initialActivityForm = createInitialActivityForm();
+
     if (initialData) {
       return { ...initialActivityForm, ...initialData };
     }
@@ -29,6 +65,8 @@ function useActivityForm(t, initialData = null, activityId = null) {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [showAnalysis, setShowAnalysis] = useState(false);
+  const [analysisPrediction, setAnalysisPrediction] = useState(null);
+  const [isAnalysisLoading, setIsAnalysisLoading] = useState(false);
 
   useEffect(() => {
     if (activityId && !initialData) {
@@ -37,7 +75,7 @@ function useActivityForm(t, initialData = null, activityId = null) {
         if (!result.error && result.data) {
           const act = result.data;
           setForm({
-            ...initialActivityForm,
+            ...createInitialActivityForm(),
             activityDate: act.activity_date ? String(act.activity_date).slice(0, 10) : "",
             sleepHours: act.sleep_hours || "",
             studyHours: act.study_hours || "",
@@ -75,26 +113,34 @@ function useActivityForm(t, initialData = null, activityId = null) {
 
     try {
       const payload = buildActivityPayload(form, "submitted");
+      setAnalysisPrediction(null);
+      setShowAnalysis(true);
+      setIsAnalysisLoading(true);
+
       const result = activityId
         ? await updateActivity(activityId, payload)
         : await createActivity(payload);
 
       if (result.error) {
         setError(result.message);
+        setShowAnalysis(false);
+        setIsAnalysisLoading(false);
         setIsSubmitting(false);
         return;
       }
 
+      const resultActivityId = result.data?.activity?.id || activityId;
+      const prediction = result.data?.prediction || await waitForPrediction(resultActivityId);
+
+      setAnalysisPrediction(prediction);
       setMessage(result.message || t.ActivitySuccessMessage);
-      setShowAnalysis(true);
-      setForm((currentForm) => ({
-        ...initialActivityForm,
-        activityDate: currentForm.activityDate,
-      }));
+      setForm(createInitialActivityForm());
     } catch (error) {
       setError(error.message || t.ActivitySubmitErrorMessage || "Terjadi kesalahan saat mengirim data.");
+      setShowAnalysis(false);
     } finally {
       setIsSubmitting(false);
+      setIsAnalysisLoading(false);
     }
   }
 
@@ -129,7 +175,9 @@ function useActivityForm(t, initialData = null, activityId = null) {
     handleSaveDraft,
     handleCloseAnalysis,
     isSubmitting,
+    isAnalysisLoading,
     message,
+    analysisPrediction,
     showAnalysis,
   };
 }
