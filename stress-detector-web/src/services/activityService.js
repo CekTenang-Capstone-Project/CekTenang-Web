@@ -74,7 +74,13 @@ function parseDateOnly(dateValue) {
     return new Date("");
   }
 
-  const [year, month, day] = String(dateValue).slice(0, 10).split("-").map(Number);
+  const stringValue = String(dateValue);
+
+  if (stringValue.includes("T")) {
+    return new Date(stringValue);
+  }
+
+  const [year, month, day] = stringValue.slice(0, 10).split("-").map(Number);
 
   if (!year || !month || !day) {
     return new Date(dateValue);
@@ -132,11 +138,12 @@ export const getActivityHistory = async () => {
       const activity = activitiesById.get(String(prediction.activity_id));
       const stressScore = normalizeScore(prediction.stress_score);
       const activityDate = activity?.activity_date || prediction.prediction_date;
-      const datetime = parseDateOnly(activityDate);
+      const datetime = new Date(prediction.created_at || activity?.created_at || activityDate);
 
       return {
         id: prediction.activity_id || prediction.id,
         datetime,
+        activityDateTime: parseDateOnly(activityDate),
         predictionDate: activityDate,
         stressScore,
         stress_score: stressScore,
@@ -155,7 +162,8 @@ export const getActivityHistory = async () => {
       })
       .map((activity) => ({
         id: activity.id,
-        datetime: parseDateOnly(activity.activity_date || activity.created_at),
+        datetime: new Date(activity.created_at || activity.activity_date),
+        activityDateTime: parseDateOnly(activity.activity_date || activity.created_at),
         predictionDate: activity.activity_date,
         stressScore: 0,
         stress_score: 0,

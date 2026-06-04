@@ -111,6 +111,11 @@ function useActivityForm(t, initialData = null, activityId = null, options = {})
     setError("");
     setMessage("");
 
+    if (!form.activityDate) {
+      setError("Pilih tanggal aktivitas terlebih dahulu.");
+      return;
+    }
+
     if (!activityHasInput(form)) {
       setError("Isi minimal satu data aktivitas sebelum simpan dan prediksi.");
       return;
@@ -161,6 +166,12 @@ function useActivityForm(t, initialData = null, activityId = null, options = {})
 
   async function handleSaveDraft(event) {
     event.preventDefault();
+    setError("");
+
+    if (!form.activityDate) {
+      setError("Pilih tanggal aktivitas terlebih dahulu.");
+      return;
+    }
 
     setIsSubmitting(true);
 

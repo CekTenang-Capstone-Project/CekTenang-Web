@@ -36,10 +36,36 @@ function formatDateOption(date, locale) {
   });
 }
 
+function getLocalDateKey(date) {
+  if (Number.isNaN(date.getTime())) {
+    return "";
+  }
+
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+}
+
+function getDateKeyFromValue(dateValue) {
+  if (!dateValue) {
+    return "";
+  }
+
+  const stringValue = String(dateValue);
+
+  if (stringValue.includes("T")) {
+    return getLocalDateKey(new Date(stringValue));
+  }
+
+  return stringValue.slice(0, 10);
+}
+
 function getHistoryDateKey(item) {
   const dateValue = item.activity?.activity_date || item.predictionDate;
 
-  return dateValue ? String(dateValue).slice(0, 10) : "";
+  return getDateKeyFromValue(dateValue);
 }
 
 function LogActivitiesPage() {
@@ -49,7 +75,6 @@ function LogActivitiesPage() {
   const navigate = useNavigate();
   const activityId = id || null;
   const [usedDateKeys, setUsedDateKeys] = useState(new Set());
-  const [showNoDatePopup, setShowNoDatePopup] = useState(false);
   const handleSubmitted = useCallback((activityDate) => {
     if (!activityDate) {
       return;
@@ -57,7 +82,7 @@ function LogActivitiesPage() {
 
     setUsedDateKeys((currentDates) => {
       const nextDates = new Set(currentDates);
-      nextDates.add(String(activityDate).slice(0, 10));
+      nextDates.add(getDateKeyFromValue(activityDate));
       return nextDates;
     });
   }, []);
@@ -89,6 +114,11 @@ function LogActivitiesPage() {
     }),
     [activityId, allActivityDateOptions, form.activityDate, usedDateKeys],
   );
+  const showNoDatePopup =
+    !activityId &&
+    usedDateKeys.size > 0 &&
+    activityDateOptions.length === 0 &&
+    !showAnalysis;
 
   useEffect(() => {
     let isMounted = true;
@@ -121,12 +151,10 @@ function LogActivitiesPage() {
       return;
     }
 
-    if (activityDateOptions.length === 0 && !showAnalysis) {
-      setShowNoDatePopup(true);
-      return;
-    }
-
-    if (!activityDateOptions.some((option) => option.value === form.activityDate)) {
+    if (
+      activityDateOptions.length > 0 &&
+      !activityDateOptions.some((option) => option.value === form.activityDate)
+    ) {
       handleChange({
         target: {
           name: "activityDate",

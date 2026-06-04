@@ -3,19 +3,27 @@ import { useLanguage } from "../../contexts/LanguageContext";
 
 function ProfileAvatarCard({ image, name, role, onEdit, onSavePhoto, hasNewPhoto = false, }) {
   const { t } = useLanguage();
+  const initial = name?.trim()?.[0]?.toUpperCase() || "?";
+
   return (
     <div className="theme-card rounded-3xl border backdrop-blur-xl p-6">
       <div className="flex flex-col md:flex-row items-center gap-6">
 
         {/* Avatar */}
         <div className="relative shrink-0">
-          <div className="theme-card-muted w-32 h-32 rounded-3xl overflow-hidden border border-blue-400/30 shadow-[0_0_40px_rgba(59,130,246,0.15)]">
-            <img
-              src={image}
-              alt={name}
-              className="w-full h-full object-cover"
-            />
-          </div>
+          {image ? (
+            <div className="theme-card-muted w-32 h-32 rounded-3xl overflow-hidden border border-blue-400/30 shadow-[0_0_40px_rgba(59,130,246,0.15)]">
+              <img
+                src={image}
+                alt={name}
+                className="w-full h-full object-cover"
+              />
+            </div>
+          ) : (
+            <div className="grid h-32 w-32 place-items-center rounded-3xl border border-blue-400/30 bg-gradient-to-br from-amber-500 to-blue-600 text-5xl font-bold text-white shadow-[0_0_40px_rgba(59,130,246,0.15)]">
+              {initial}
+            </div>
+          )}
         </div>
 
         {/* User Info */}

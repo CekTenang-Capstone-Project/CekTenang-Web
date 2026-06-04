@@ -1,6 +1,6 @@
 import { useLanguage } from "../../contexts/LanguageContext";
 
-function TodayDiagnose({studyTime, taskLoad, deadlinePressure, physicalActivity, sleep}) {
+function TodayDiagnose({items, studyTime, taskLoad, deadlinePressure, physicalActivity, sleep}) {
   const { t } = useLanguage();
 
   const getAcademicMetric = (type, value) => {
@@ -122,11 +122,12 @@ function TodayDiagnose({studyTime, taskLoad, deadlinePressure, physicalActivity,
         value: sleep,
     },
     ];
+    const displayData = items?.length ? items : academicData;
 
   return (
     <div className="space-y-5">
-      {academicData.map((item, index) => {
-        const metric = getAcademicMetric(item.type, item.value);
+      {displayData.map((item, index) => {
+        const metric = item.metric || getAcademicMetric(item.type, item.value);
 
         return (
           <div key={index}>

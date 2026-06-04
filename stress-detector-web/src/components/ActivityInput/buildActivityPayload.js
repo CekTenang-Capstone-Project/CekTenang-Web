@@ -1,4 +1,4 @@
-import { activityNumberFields, getYesterdayDateString } from "./activityFormConstants";
+import { activityNumberFields } from "./activityFormConstants";
 
 const activityHasInput = (form) => {
   const hasNumericInput = activityNumberFields.some((fieldName) => {
@@ -11,7 +11,7 @@ const activityHasInput = (form) => {
 
 function buildActivityPayload(form, status) {
   return {
-    activityDate: form.activityDate || getYesterdayDateString(),
+    activityDate: form.activityDate,
     activityStatus: status,
     note: form.dailyNote,
     ...Object.fromEntries(

@@ -16,7 +16,14 @@ const parseDateOnly = (dateValue) => {
     return null;
   }
 
-  const [year, month, day] = String(dateValue).slice(0, 10).split("-").map(Number);
+  const stringValue = String(dateValue);
+
+  if (stringValue.includes("T")) {
+    const date = new Date(stringValue);
+    return Number.isNaN(date.getTime()) ? null : date;
+  }
+
+  const [year, month, day] = stringValue.slice(0, 10).split("-").map(Number);
 
   if (!year || !month || !day) {
     return null;
@@ -58,6 +65,16 @@ const getNumberField = (data, snakeCaseName, camelCaseName) => {
   const numberValue = Number(value);
 
   return Number.isFinite(numberValue) ? numberValue : 0;
+};
+
+const normalizePercent = (value) => {
+  const numberValue = Number(value);
+
+  if (!Number.isFinite(numberValue)) {
+    return 0;
+  }
+
+  return Math.min(numberValue <= 10 ? numberValue * 10 : numberValue, 100);
 };
 
 const mergeHistoryItem = (item) => {
@@ -197,6 +214,96 @@ function DashboardPage() {
   };
 
   const currentActivityFormattedDate = currentActivity ? formatActivityDate(currentActivity.activity_date) : "";
+  const stressScore = getNumberField(currentActivity, "stress_score", "stressScore");
+  const studyHours = getNumberField(currentActivity, "study_hours", "studyHours");
+  const deadlinePressure = getNumberField(currentActivity, "deadline_pressure", "deadlinePressure");
+  const taskLoad = getNumberField(currentActivity, "assignment_load", "assignmentLoad");
+  const moodScore = getNumberField(currentActivity, "mood_score", "moodScore");
+  const fatigueLevel = getNumberField(currentActivity, "fatigue_level", "fatigueLevel");
+  const screenTime = getNumberField(currentActivity, "screen_time_hours", "screenTimeHours");
+  const socialMedia = getNumberField(currentActivity, "social_media_hours", "socialMediaHours");
+  const physicalActivity = getNumberField(currentActivity, "physical_activity_minutes", "physicalActivityMinutes");
+  const sleepHours = getNumberField(currentActivity, "sleep_hours", "sleepHours");
+  const conditionItems = [
+    {
+      label: t.MoodScoreTitle,
+      metric: {
+        display: moodScore.toString(),
+        width: Math.min(moodScore, 100),
+        color:
+          moodScore <= 25
+            ? "bg-green-500"
+            : moodScore <= 65
+            ? "bg-yellow-500"
+            : "bg-red-500",
+      },
+    },
+    {
+      label: t.FatigueLevelTitle,
+      metric: {
+        display: fatigueLevel.toString(),
+        width: Math.min(fatigueLevel, 100),
+        color:
+          fatigueLevel < 40
+            ? "bg-green-500"
+            : fatigueLevel < 70
+            ? "bg-yellow-500"
+            : "bg-red-500",
+      },
+    },
+    {
+      label: t.ActivityScreenTimeTitle || "Screen Time",
+      metric: {
+        display: `${screenTime} ${t.HourText}`,
+        width: Math.min((screenTime / 24) * 100, 100),
+        color:
+          screenTime < 4
+            ? "bg-green-500"
+            : screenTime < 8
+            ? "bg-yellow-500"
+            : "bg-red-500",
+      },
+    },
+    {
+      label: t.SocialMediaTitle,
+      metric: {
+        display: `${socialMedia} ${t.HourText}`,
+        width: Math.min((socialMedia / 24) * 100, 100),
+        color:
+          socialMedia < 2
+            ? "bg-green-500"
+            : socialMedia < 4
+            ? "bg-yellow-500"
+            : "bg-red-500",
+      },
+    },
+    {
+      label: t.PhysicalActivityTitle || "Aktivitas Fisik",
+      metric: {
+        display: `${physicalActivity} ${t.MinuteText}`,
+        width: Math.min((physicalActivity / 60) * 100, 100),
+        color:
+          physicalActivity >= 30
+            ? "bg-green-500"
+            : physicalActivity >= 15
+            ? "bg-yellow-500"
+            : "bg-red-500",
+      },
+    },
+    {
+      label: t.ActivitySleepHoursTitle || t.LastNightSleepTitle || "Jam Tidur",
+      metric: {
+        display: `${sleepHours} ${t.HourText}`,
+        width: Math.min((sleepHours / 8) * 100, 100),
+        color:
+          sleepHours >= 7
+            ? "bg-green-500"
+            : sleepHours >= 5
+            ? "bg-yellow-500"
+            : "bg-red-500",
+      },
+    },
+  ];
 
   if (loading) {
     return (
@@ -312,24 +419,24 @@ function DashboardPage() {
 
     {/* Data Cards */}
       <Datas
-        metric="Mood"
-        title={t.MoodScoreTitle}
-        value={getNumberField(currentActivity, "mood_score", "moodScore").toString()}
-      />
-      <Datas
-        metric="Fatigue"
-        title={t.FatigueLevelTitle}
-        value={getNumberField(currentActivity, "fatigue_level", "fatigueLevel").toString()}
-      />
-      <Datas
-        metric="SocialMedia"
-        title={t.SocialMediaTitle}
-        value={getNumberField(currentActivity, "social_media_hours", "socialMediaHours").toString()}
-      />
-      <Datas
         metric="Stress"
         title={t.StressScoreTitle}
-        value={getNumberField(currentActivity, "stress_score", "stressScore").toString()}
+        value={stressScore.toString()}
+      />
+      <Datas
+        metric="StudyTime"
+        title={t.StudyTimeTitle}
+        value={studyHours.toString()}
+      />
+      <Datas
+        metric="DeadlinePressure"
+        title={t.DeadlinePressureTitle}
+        value={Math.round(normalizePercent(deadlinePressure)).toString()}
+      />
+      <Datas
+        metric="TaskLoad"
+        title={t.TaskLoadTitle}
+        value={Math.round(normalizePercent(taskLoad)).toString()}
       />
 
 
@@ -345,11 +452,7 @@ function DashboardPage() {
       </h2>
 
       <TodayDiagnose
-        studyTime={getNumberField(currentActivity, "study_hours", "studyHours")}
-        taskLoad={getNumberField(currentActivity, "assignment_load", "assignmentLoad")}
-        deadlinePressure={getNumberField(currentActivity, "deadline_pressure", "deadlinePressure")}
-        physicalActivity={getNumberField(currentActivity, "physical_activity_minutes", "physicalActivityMinutes")}
-        sleep={getNumberField(currentActivity, "sleep_hours", "sleepHours")}
+        items={conditionItems}
       />
     </div>
 

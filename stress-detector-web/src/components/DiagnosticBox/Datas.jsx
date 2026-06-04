@@ -4,8 +4,56 @@ import { useLanguage } from "../../contexts/LanguageContext";
 function Datas({ title, value, metric }) {
     const { t } = useLanguage();
 
+    const numericValue = Number(value);
+    const safeValue = Number.isFinite(numericValue) ? numericValue : 0;
+    const normalizePercent = (score) => Math.min(score <= 10 ? score * 10 : score, 100);
+
     const getStatus = (score) => {
       switch (metric) {
+        case "StudyTime":
+          return {
+            label: t.HourText,
+            color:
+              score >= 4
+                ? "text-green-500"
+                : score >= 2
+                ? "text-yellow-500"
+                : "text-red-500",
+            bgcolor:
+              score >= 4
+                ? "bg-green-500"
+                : score >= 2
+                ? "bg-yellow-500"
+                : "bg-red-500",
+          };
+
+        case "DeadlinePressure":
+        case "TaskLoad": {
+          const percent = normalizePercent(score);
+
+          if (percent < 40) {
+            return {
+              label: "%",
+              color: "text-green-500",
+              bgcolor: "bg-green-500",
+            };
+          }
+
+          if (percent < 70) {
+            return {
+              label: "%",
+              color: "text-yellow-500",
+              bgcolor: "bg-yellow-500",
+            };
+          }
+
+          return {
+            label: "%",
+            color: "text-red-500",
+            bgcolor: "bg-red-500",
+          };
+        }
+
         case "Mood":
           if (score <= 25) {
             return {
@@ -107,7 +155,21 @@ function Datas({ title, value, metric }) {
       }
     };
 
-    const stress = getStatus(Number(value));
+    const getProgressWidth = () => {
+      switch (metric) {
+        case "SocialMedia":
+          return Math.min((safeValue / 24) * 100, 100);
+        case "StudyTime":
+          return Math.min((safeValue / 8) * 100, 100);
+        case "DeadlinePressure":
+        case "TaskLoad":
+          return normalizePercent(safeValue);
+        default:
+          return Math.min(safeValue, 100);
+      }
+    };
+
+    const stress = getStatus(safeValue);
 
   return (
     <div
@@ -135,10 +197,7 @@ function Datas({ title, value, metric }) {
         <div
           className={`h-full ${stress.bgcolor}`}
           style={{
-            width:
-              metric === "SocialMedia"
-                ? `${(value / 24) * 100}%`
-                : `${value}%`,
+            width: `${getProgressWidth()}%`,
           }}
         />
       </div>
@@ -149,8 +208,6 @@ function Datas({ title, value, metric }) {
 Datas.propTypes = {
   title: PropTypes.string.isRequired,
   value: PropTypes.string.isRequired,
-  unit: PropTypes.string.isRequired,
-  text: PropTypes.string.isRequired,
   metric: PropTypes.string.isRequired,
 };
 
