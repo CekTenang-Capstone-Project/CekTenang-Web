@@ -3,6 +3,8 @@ import ActivityAnalysisPanel from "../components/ActivityInput/ActivityAnalysisP
 import ActivityFormPanel from "../components/ActivityInput/ActivityFormPanel";
 import useActivityForm from "../components/ActivityInput/useActivityForm";
 import { useLanguage } from "../contexts/LanguageContext";
+import { useParams } from "react-router-dom";
+import { useUser } from "../contexts/UserContext";
 
 function formatJournalDate(dateValue, locale) {
   if (!dateValue) {
@@ -18,11 +20,14 @@ function formatJournalDate(dateValue, locale) {
 
 function LogActivitiesPage() {
   const { t } = useLanguage();
-  const { error, form, handleChange, handleSubmit, handleSaveDraft, handleCloseAnalysis, isSubmitting, message, showAnalysis } = useActivityForm(t);
+  const { user } = useUser();
+  const { id } = useParams();
+  const activityId = id || null;
+  const { error, form, handleChange, handleSubmit, handleSaveDraft, handleCloseAnalysis, isSubmitting, message, showAnalysis } = useActivityForm(t, null, activityId);
   const journalDate = formatJournalDate(form.activityDate, t.DashboardDateLocale);
 
   return (
-    <Layout title="Catat Data Aktivitas" name="User" role="User">
+    <Layout title="Catat Data Aktivitas" name={user.fullname} role={user.role}>
       <div className="space-y-6 max-w-7xl mx-auto">
         <section className="theme-card rounded-2xl p-5 md:p-7">
           <div className="grid gap-5 lg:grid-cols-[minmax(0,1.3fr)_minmax(360px,0.7fr)]">

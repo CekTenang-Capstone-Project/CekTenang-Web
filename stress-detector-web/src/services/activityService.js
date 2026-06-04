@@ -40,6 +40,25 @@ export const updateActivity = async (id, payload) => {
   }
 };
 
+export const getActivityById = async (id) => {
+  try {
+    const response = await api.get(`/activities/${id}`);
+
+    return {
+      error: false,
+      data: response.data.data.activity,
+    };
+  } catch (error) {
+    return {
+      error: true,
+      message:
+        error.response?.data?.message ||
+        error.message ||
+        "Gagal memuat aktivitas",
+    };
+  }
+};
+
 function normalizeScore(score) {
   const value = Number(score);
 

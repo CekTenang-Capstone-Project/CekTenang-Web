@@ -43,7 +43,12 @@ export const login = async (req, res, next) => {
 };
 
 export const loginWithGoogle = async (req, res, next) => {
-  const { credential } = req.validated;
+  const payload = req.validated || req.body || {};
+  const { credential } = payload;
+
+  if (!credential) {
+    return next(new AuthenticationError('Google credential tidak ditemukan'));
+  }
 
   try {
     const googleResponse = await fetch(

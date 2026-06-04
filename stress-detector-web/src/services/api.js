@@ -19,4 +19,21 @@ api.interceptors.request.use(
   (error) => Promise.reject(error),
 );
 
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response && error.response.status === 401) {
+      // Clear tokens
+      localStorage.removeItem("accessToken");
+      localStorage.removeItem("refreshToken");
+      
+      // Redirect to login page if we are not already there
+      if (window.location.pathname !== "/login" && window.location.pathname !== "/") {
+        window.location.href = "/login";
+      }
+    }
+    return Promise.reject(error);
+  }
+);
+
 export default api;

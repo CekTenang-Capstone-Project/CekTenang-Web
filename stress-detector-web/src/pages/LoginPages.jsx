@@ -8,7 +8,6 @@ import { useUser } from "../contexts/UserContext";
 
 // Asset
 import logo from "../assets/img/logo.png";
-import google from "../assets/img/google-color-svgrepo-com.svg"
 
 // Komponent
 import ButtonSubmit from "../components/ButtonSubmit";
@@ -25,7 +24,9 @@ function LoginPage() {
   const [passwordError, setPasswordError] = useState("");
   const [apiError, setApiError] = useState("");
   const [showSuccessPopup, setShowSuccessPopup] = useState(false);
+  const [googleError, setGoogleError] = useState("");
 
+  const googleButtonRef = useRef(null);
   const { t } = useLanguage();
   const { refreshUser } = useUser();
   const navigate = useNavigate();
@@ -80,9 +81,9 @@ function LoginPage() {
 
       setGoogleError("");
 
-      const { error, data, message } = await loginWithGoogle(
-        response.credential
-      );
+      const { error, data, message } = await loginWithGoogle({
+        credential: response.credential
+      });
 
       if (error) {
         setGoogleError(message || "Login Google gagal.");
@@ -231,30 +232,16 @@ useEffect(() => {
                 <div className="theme-divider flex-1 h-px"></div>
               </div>
 
-              {/* Google */}
-              <button
-                type="button"
-                className="
-                  w-full
-                  h-12
-                  rounded-xl
-                  border theme-border
-                  theme-card
-                  text-sm
-                  font-medium
-                  theme-hover
-                  transition
+            {/* Google */}
+            <div className="flex flex-col gap-2">
+              <div ref={googleButtonRef}></div>
 
-                  flex items-center justify-center gap-3
-                "
-              >
-                <span>{t.Google}</span>
-                <img
-                  src={google}
-                  alt="Google"
-                  className="w-5 h-5 object-contain"
-                />
-              </button>
+              {googleError && (
+                <p className="text-sm text-red-500">
+                  {googleError}
+                </p>
+              )}
+            </div>
 
               {/* Switch */}
               <p className="theme-muted text-sm text-center pt-2">

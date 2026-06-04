@@ -12,6 +12,7 @@ const translations = {
     Jumat: "Jum",
     Sabtu: "Sab",
     Minggu: "Ming",
+    // General
     HourText: "jam",
     LowText: "Rendah",
     MediumText: "Sedang",
@@ -20,6 +21,7 @@ const translations = {
     PhysicalActivityTitle: "Aktivitas Fisik",
     MoodScoreTitle: "Skor Suasana Hati",
     FatigueLevelTitle: "Tingkat Kelelahan",
+    ModerateText: "Sedang", // Added for stress_level translation
     NewInsight: "Rekomendasi untuk Anda",
     CloseButton: "Tutup",
 
@@ -169,6 +171,10 @@ const translations = {
     EmotionalResilienceTitle: "Ketahanan Emosional",
     EmotionalResilienceDesc: "Mood score Anda stabil di 8.4 berkat aktivitas fisik rutin (45 mnt). Ini adalah kunci Anda tetap tenang menghadapi ujian.",
 
+    // Insights Page
+    AINarrativeInsightTitle: "Insight Naratif AI",
+    AINarrativeInsightSubtitle: "Berikut insight untuk minggu ini",
+    PriorityTodayTitle: "Prioritas Hari Ini",
     // prediksi stress
     PredictionPageTitle: "Prediksi Stres",
     PredictionTodayScoreLabel: "Skor Hari Ini",
@@ -208,6 +214,7 @@ const translations = {
     ChangePasswordTitle: "Ubah Password",
     CurrentPasswordLabel: "Current Password",
     NewPasswordLabel: "New Password",
+    LongTermTitle: "Saran Jangka Panjang",
     ConfirmPasswordLabel: "Confirm Password",
     ResetPasswordButton: "Reset Password",
 
@@ -223,6 +230,7 @@ const translations = {
     Jumat: "Fri",
     Sabtu: "Sat",
     Minggu: "Sun",
+    // General
     HourText: "hours",
     LowText: "Low",
     HighText: "High",
@@ -231,6 +239,7 @@ const translations = {
     MoodScoreTitle: "Mood Score",
     FatigueLevelTitle: "Fatigue Level",
     NewInsight: "Recommendation for you",
+    ModerateText: "Moderate", // Added for stress_level translation
     CloseButton: "Close",
 
     // LeftPanel
@@ -379,6 +388,10 @@ const translations = {
     EmotionalResilienceTitle: "Emotional Resilience",
     EmotionalResilienceDesc: "Your mood score remains stable at 8.4 thanks to regular physical activity (45 min). This is a key factor in helping you stay calm during exams.",
    
+    // Insights Page
+    AINarrativeInsightTitle: "AI Narrative Insight",
+    AINarrativeInsightSubtitle: "Here are insights for this week",
+    PriorityTodayTitle: "Today's Priorities",
     // prediksi stress
     PredictionPageTitle: "Stress Prediction",
     PredictionTodayScoreLabel: "Today's Score",
@@ -422,6 +435,7 @@ const translations = {
     ChangePasswordTitle: "Change Password",
     CurrentPasswordLabel: "Current Password",
     NewPasswordLabel: "New Password",
+    LongTermTitle: "Long-term Suggestions",
     ConfirmPasswordLabel: "Confirm Password",
     ResetPasswordButton: "Reset Password",
     DangerZoneTitle: "Danger Zone",

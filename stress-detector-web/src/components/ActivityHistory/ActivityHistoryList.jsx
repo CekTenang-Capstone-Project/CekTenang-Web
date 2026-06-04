@@ -1,4 +1,5 @@
 import PropTypes from "prop-types";
+import { useNavigate } from "react-router-dom";
 
 const statusBadge = {
   Selesai: "bg-emerald-500/15 text-emerald-300",
@@ -33,6 +34,16 @@ function formatTime(date) {
 }
 
 function ActivityHistoryList({ errorMessage = "", isLoading = false, items }) {
+  const navigate = useNavigate();
+
+  const handleActionClick = (item) => {
+    if (item.status === "Draft") {
+      navigate(`/LogActivity/${item.id}`);
+    } else {
+      navigate(`/dashboard/${item.id}`); // Navigasi ke dashboard dengan ID aktivitas
+    }
+  };
+
   return (
     <div className="theme-card overflow-hidden rounded-3xl border text-sm">
       <div className="theme-subtle theme-border hidden grid-cols-[1.3fr_2.4fr_1fr_1fr_0.9fr] gap-4 border-b px-5 py-4 text-left text-xs uppercase tracking-[0.24em] md:grid">
@@ -82,8 +93,11 @@ function ActivityHistoryList({ errorMessage = "", isLoading = false, items }) {
             </div>
 
             <div>
-              <button className="theme-card-muted rounded-full border px-4 py-2 text-sm font-semibold text-blue-400 transition hover:border-blue-400 hover:text-[var(--text)]">
-                Lihat Detail
+              <button
+                onClick={() => handleActionClick(item)}
+                className="theme-card-muted rounded-full border px-4 py-2 text-sm font-semibold text-blue-400 transition hover:border-blue-400 hover:text-[var(--text)]"
+              >
+                {item.status === "Draft" ? "Lanjutkan Menulis" : "Lihat Detail"}
               </button>
             </div>
           </div>

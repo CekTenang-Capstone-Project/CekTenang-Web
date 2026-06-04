@@ -30,6 +30,7 @@ export default function App() {
           <Route element={<ProtectedRoute />}>
             <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/LogActivity" element={<LogActivitiesPage />} />
+            <Route path="/LogActivity/:id" element={<LogActivitiesPage />} />
             <Route path="/activity-history" element={<ActivityHistoryPage />} />
             <Route path="/Insight" element={<InsightPage />} />
             <Route path="/profile" element={<ProfilePage />} />
