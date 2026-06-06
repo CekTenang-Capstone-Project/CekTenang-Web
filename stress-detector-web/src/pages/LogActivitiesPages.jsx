@@ -137,34 +137,70 @@ function LogActivitiesPage() {
 
               {/* Content */}
               <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-center gap-2">
-                  <h3 className="theme-text text-xl font-semibold">
-                    {t.ActivityJournalHeader}
-                  </h3>
-                  
-                  {activityId ? (
-                    // If editing, date is read-only
-                    <span className="text-xl font-semibold text-blue-300">
-                      {journalDate}
-                    </span>
-                  ) : (
-                    // If creating, allow selecting a date (today or 3 days back)
-                    <select
-                      name="activityDate"
-                      value={form.activityDate}
-                      onChange={handleChange}
-                      className="theme-input h-10 rounded-xl border px-3 text-sm font-semibold text-blue-400 outline-none transition focus:border-blue-400"
-                    >
-                      {getPastActivityDateOptions(new Date(), 4).map((option) => (
-                        <option key={option.value} value={option.value} className="theme-text bg-(--bg-card)">
-                          {formatJournalDate(option.value, t.DashboardDateLocale)}
-                        </option>
-                      ))}
-                    </select>
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h3 className="theme-text text-xl font-semibold">
+                      {t.ActivityJournalHeader}
+                    </h3>
+                    
+                    {activityId && (
+                      <span className="rounded-xl bg-blue-500/10 border border-blue-400/30 px-3 py-1.5 text-xs font-semibold text-blue-400">
+                        {journalDate}
+                      </span>
+                    )}
+                  </div>
+
+                  {!activityId && (
+                    <div className="flex flex-wrap gap-2">
+                      {getPastActivityDateOptions(new Date(), 3).map((option, idx) => {
+                        const isSelected = form.activityDate === option.value;
+                        const isIndonesian = t.DashboardDateLocale === "id-ID";
+                        let relativeLabel = "";
+                        if (idx === 0) {
+                          relativeLabel = isIndonesian ? "Hari Ini" : "Today";
+                        } else if (idx === 1) {
+                          relativeLabel = isIndonesian ? "Kemarin" : "Yesterday";
+                        } else {
+                          relativeLabel = isIndonesian ? "2 Hari Lalu" : "2 Days Ago";
+                        }
+                        
+                        const dateObj = option.date;
+                        const locale = t.DashboardDateLocale || "id-ID";
+                        const dayName = dateObj.toLocaleDateString(locale, { weekday: "short" });
+                        const dateNum = dateObj.getDate();
+                        const monthName = dateObj.toLocaleDateString(locale, { month: "short" });
+                        const dateLabel = `${dayName}, ${dateNum} ${monthName}`;
+
+                        return (
+                          <button
+                            key={option.value}
+                            type="button"
+                            onClick={() => {
+                              handleChange({
+                                target: {
+                                  name: "activityDate",
+                                  value: option.value,
+                                },
+                              });
+                            }}
+                            className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold border transition-all duration-200 cursor-pointer ${
+                              isSelected
+                                ? "bg-blue-400 text-slate-900 border-blue-400 shadow-sm"
+                                : "bg-transparent border-(--border) theme-muted hover:border-blue-400/50 hover:text-(--text)"
+                            }`}
+                          >
+                            <span>{relativeLabel}</span>
+                            <span className={`text-[10px] font-normal opacity-70 ${isSelected ? "text-slate-800" : "theme-muted"}`}>
+                              | {dateLabel}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
                   )}
                 </div>
 
-                <p className="theme-muted mt-1 text-sm">
+                <p className="theme-muted mt-2 text-sm">
                   {t.ActivityJournalDescription}
                 </p>
               </div>
