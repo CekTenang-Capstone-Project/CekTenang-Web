@@ -17,15 +17,18 @@ export const getWeeklySummaries = async (req, res) => {
 export const getLatestWeeklySummary = async (req, res) => {
   const { id: userId } = req.user;
 
-  try {
-    const todayStr = new Date().toISOString().split('T')[0];
-    await WeeklySummaryRepositories.generateWeeklySummaryInternal(userId, todayStr);
-  } catch (err) {
-    console.error(`[Warning] Auto-generation on GET latest summary failed: ${err.message}`);
-  }
-
+  // Return the cached summary immediately — trigger regeneration in the background
   const summary = await WeeklySummaryRepositories.getLatestSummary(userId);
+  response(res, 200, 'Ringkasan mingguan terbaru berhasil ditampilkan', { summary });
 
-  return response(res, 200, 'Ringkasan mingguan terbaru berhasil ditampilkan', { summary });
+  // Background refresh (non-blocking) — does not delay the HTTP response
+  setImmediate(async () => {
+    try {
+      const todayStr = new Date().toISOString().split('T')[0];
+      await WeeklySummaryRepositories.generateWeeklySummaryInternal(userId, todayStr);
+    } catch (err) {
+      console.error(`[Background] Weekly summary auto-generation failed: ${err.message}`);
+    }
+  });
 };
 

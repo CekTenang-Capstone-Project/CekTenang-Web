@@ -9,117 +9,29 @@ import Layout from "../../layouts/Layout";
 import api from "../services/api";
 import { useUser } from "../contexts/UserContext";
 import { useLanguage } from "../contexts/LanguageContext";
-import { getActivityHistory } from "../services/activityService";
+
+// ─── Helpers ────────────────────────────────────────────────────────────────
 
 const getNumberField = (data, snakeCaseName, camelCaseName) => {
   const value = data?.[snakeCaseName] ?? data?.[camelCaseName];
   const numberValue = Number(value);
-
   return Number.isFinite(numberValue) ? numberValue : 0;
 };
 
 const getAverage = (items, selector) => {
-  const values = items.map(selector).filter((value) => Number.isFinite(value));
-
-  if (values.length === 0) {
-    return 0;
-  }
-
-  return values.reduce((sum, value) => sum + value, 0) / values.length;
+  const values = items.map(selector).filter((v) => Number.isFinite(v));
+  if (values.length === 0) return 0;
+  return values.reduce((sum, v) => sum + v, 0) / values.length;
 };
 
 const getTrendPercentage = (items, selector) => {
-  if (items.length < 2) {
-    return 0;
-  }
-
-  const sortedItems = [...items].sort((a, b) => a.datetime - b.datetime);
-  const midpoint = Math.ceil(sortedItems.length / 2);
-  const firstAverage = getAverage(sortedItems.slice(0, midpoint), selector);
-  const lastAverage = getAverage(sortedItems.slice(midpoint), selector);
-
-  if (!firstAverage || !lastAverage) {
-    return 0;
-  }
-
-  return Math.round(((lastAverage - firstAverage) / firstAverage) * 100);
-};
-
-
-
-const normalizeInsight = (insight) => {
-  if (!insight) {
-    return null;
-  }
-
-  const insightText = insight.insight_text ?? insight.insightText ?? insight.description ?? "";
-
-  return {
-    id: insight.id,
-    insight_text: typeof insightText === "string" ? insightText.trim() : "",
-    created_at: insight.created_at,
-  };
-};
-
-const getInsightFromResponse = (responseData) => {
-  const data = responseData?.data ?? responseData;
-  const insight =
-    data?.insight ??
-    data?.latestInsight ??
-    data?.insights?.[0] ??
-    (Array.isArray(data) ? data[0] : data);
-
-  return normalizeInsight(insight);
-};
-
-const fetchLatestDatabaseInsight = async () => {
-  try {
-    const latestResponse = await api.get("/insights/latest");
-    const latestInsight = getInsightFromResponse(latestResponse.data);
-
-    if (latestInsight?.insight_text) {
-      return latestInsight;
-    }
-  } catch (latestInsightError) {
-    console.warn("Failed to fetch latest insight:", latestInsightError);
-  }
-
-  try {
-    const listResponse = await api.get("/insights", {
-      params: { limit: 1, offset: 0 },
-    });
-    return getInsightFromResponse(listResponse.data);
-  } catch (insightListError) {
-    console.warn("Failed to fetch insights list:", insightListError);
-    return null;
-  }
-};
-
-const fetchLatestDatabaseRecommendations = async () => {
-  try {
-    try {
-      await api.get("/recommendations/latest");
-    } catch (triggerError) {
-      console.warn("Failed to trigger latest recommendation auto-healing:", triggerError);
-    }
-
-    const response = await api.get("/recommendations", {
-      params: { limit: 10, offset: 0 },
-    });
-    const recs = response.data?.data?.recommendations ?? response.data?.recommendations ?? [];
-    if (recs.length > 0) {
-      const latestSummaryId = recs[0].summary_id;
-      if (latestSummaryId) {
-        return recs.filter((rec) => rec.summary_id === latestSummaryId);
-      }
-      const latestCreatedAt = recs[0].created_at;
-      return recs.filter((rec) => rec.created_at === latestCreatedAt);
-    }
-    return [];
-  } catch (err) {
-    console.warn("Failed to fetch recommendations:", err);
-    return [];
-  }
+  if (items.length < 2) return 0;
+  const sorted = [...items].sort((a, b) => new Date(a.datetime) - new Date(b.datetime));
+  const mid = Math.ceil(sorted.length / 2);
+  const firstAvg = getAverage(sorted.slice(0, mid), selector);
+  const lastAvg = getAverage(sorted.slice(mid), selector);
+  if (!firstAvg || !lastAvg) return 0;
+  return Math.round(((lastAvg - firstAvg) / firstAvg) * 100);
 };
 
 const formatDateRange = (startStr, endStr, locale) => {
@@ -127,180 +39,152 @@ const formatDateRange = (startStr, endStr, locale) => {
   const start = new Date(startStr);
   const end = new Date(endStr);
   if (isNaN(start.getTime()) || isNaN(end.getTime())) return "";
-
-  const options = { day: "numeric", month: "short", year: "numeric" };
-  return `${start.toLocaleDateString(locale, options)} - ${end.toLocaleDateString(locale, options)}`;
+  const opts = { day: "numeric", month: "short", year: "numeric" };
+  return `${start.toLocaleDateString(locale, opts)} – ${end.toLocaleDateString(locale, opts)}`;
 };
 
-const fetchLatestWeeklySummary = async () => {
+// ─── Data fetchers (all fire in parallel) ────────────────────────────────────
+
+/** Fetch the latest weekly summary — no auto-generation side-effects */
+const fetchLatestSummary = async () => {
   try {
-    const response = await api.get("/weekly-summaries/latest");
-    return response.data?.data?.summary ?? response.data?.summary ?? null;
-  } catch (err) {
-    console.warn("Failed to fetch latest weekly summary:", err);
+    const res = await api.get("/weekly-summaries/latest");
+    return res.data?.data?.summary ?? res.data?.summary ?? null;
+  } catch {
     return null;
   }
 };
 
+/** Fetch the latest AI-generated insight text */
+const fetchLatestInsight = async () => {
+  try {
+    const res = await api.get("/insights/latest");
+    const raw = res.data?.data?.insight ?? res.data?.insight ?? null;
+    if (!raw) return null;
+    const text = raw.insight_text ?? raw.insightText ?? raw.description ?? "";
+    return { id: raw.id, insight_text: String(text).trim(), created_at: raw.created_at };
+  } catch {
+    return null;
+  }
+};
+
+/** Fetch latest batch of recommendations — no trigger call */
+const fetchLatestRecommendations = async () => {
+  try {
+    const res = await api.get("/recommendations", { params: { limit: 10, offset: 0 } });
+    const recs = res.data?.data?.recommendations ?? res.data?.recommendations ?? [];
+    if (recs.length === 0) return [];
+    const latestSummaryId = recs[0].summary_id;
+    if (latestSummaryId) return recs.filter((r) => r.summary_id === latestSummaryId);
+    const latestCreatedAt = recs[0].created_at;
+    return recs.filter((r) => r.created_at === latestCreatedAt);
+  } catch {
+    return [];
+  }
+};
+
+/** Fetch paginated predictions for chart building */
+const fetchPredictions = async () => {
+  try {
+    const res = await api.get("/predictions", { params: { limit: 7, offset: 0 } });
+    return res.data?.data?.predictions ?? [];
+  } catch {
+    return [];
+  }
+};
+
+// ─── Component ───────────────────────────────────────────────────────────────
+
 function InsightPage() {
   const { user } = useUser();
   const { t } = useLanguage();
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [dateRange, setDateRange] = useState("");
-  const [insightData, setInsightData] = useState(null);
-  const [todayRecommendations, setTodayRecommendations] = useState([]);
+  const [insightData, setInsightData] = useState(null);         // { weeklySummary, dataCount }
   const [narrativeInsight, setNarrativeInsight] = useState(null);
+  const [todayRecommendations, setTodayRecommendations] = useState([]);
   const [weeklyActivityData, setWeeklyActivityData] = useState([]);
   const [academicConditionData, setAcademicConditionData] = useState([]);
   const [stressIntensityData, setStressIntensityData] = useState([]);
 
-  const fetchInsightsData = useCallback(async (showLoading = true) => {
-    if (showLoading) {
-      setLoading(true);
-    }
+  const fetchSummaryData = useCallback(async () => {
+    setLoading(true);
     setError(null);
     try {
-      const historyResponse = await getActivityHistory();
+      // 🚀 All requests fire in parallel — no blocking sequential calls
+      const [summary, insight, recommendations, predictions] = await Promise.all([
+        fetchLatestSummary(),
+        fetchLatestInsight(),
+        fetchLatestRecommendations(),
+        fetchPredictions(),
+      ]);
 
-      if (historyResponse.error) {
-        throw new Error(historyResponse.message);
+      // ── Date range ────────────────────────────────────────────────────
+      if (summary) {
+        setDateRange(formatDateRange(summary.period_start, summary.period_end, t.DashboardDateLocale));
       }
 
-      const history = historyResponse.data || [];
-      const completedHistory = history
-        .filter((item) => item.status !== "Draft")
-        .sort((a, b) => b.datetime - a.datetime);
-      const latestSevenItems = completedHistory.slice(0, 7);
-      const latestItem = completedHistory[0];
-      const latestActivity = latestItem
+      // ── Weekly summary stats ──────────────────────────────────────────
+      // Sort predictions oldest → newest for trend calculations
+      const sortedPreds = [...predictions].sort(
+        (a, b) => new Date(a.created_at) - new Date(b.created_at)
+      );
+
+      const weeklySummary = summary
         ? {
-            ...latestItem.activity,
-            ...latestItem.prediction,
-            stress_score: latestItem.stressScore,
-            stressScore: latestItem.stressScore,
+            avgStressScore: Math.round(Number(summary.avg_stress_score) || 0),
+            avgSleepHours: Number(summary.avg_sleep_hours) || 0,
+            avgAssignmentLoad: Number(summary.avg_assignment_load) || 0,
+            avgDeadlinePressure: Number(summary.avg_deadline_pressure) || 0,
+            avgPhysicalActivity: Number(summary.avg_physical_activity) || 0,
+            avgStudyHours: Number(summary.avg_study_hours) || 0,
+            avgSocialMediaHours: Number(summary.avg_social_media_hours) || 0,
+            // Trends from prediction history
+            stressTrend: getTrendPercentage(sortedPreds, (p) =>
+              Number(p.stress_score) <= 1 ? Number(p.stress_score) * 100 : Number(p.stress_score)
+            ),
+            sleepTrend: 0,
+            taskLoadTrend: 0,
+            physicalActivityTrend: 0,
           }
-        : null;
+        : {
+            avgStressScore: 0, avgSleepHours: 0, avgAssignmentLoad: 0,
+            avgDeadlinePressure: 0, avgPhysicalActivity: 0, avgStudyHours: 0,
+            avgSocialMediaHours: 0, stressTrend: 0, sleepTrend: 0,
+            taskLoadTrend: 0, physicalActivityTrend: 0,
+          };
 
-      let latestWeeklySummary = null;
-      try {
-        latestWeeklySummary = await fetchLatestWeeklySummary();
-      } catch (summaryErr) {
-        console.warn("Failed to fetch latest summary:", summaryErr);
-      }
-
-      let weeklySummary;
-      if (latestWeeklySummary) {
-        weeklySummary = {
-          avgStressScore: Math.round(latestWeeklySummary.avg_stress_score),
-          avgSleepHours: Number(latestWeeklySummary.avg_sleep_hours),
-          avgAssignmentLoad: Number(latestWeeklySummary.avg_assignment_load),
-          avgDeadlinePressure: Number(latestWeeklySummary.avg_deadline_pressure),
-          avgPhysicalActivity: Number(latestWeeklySummary.avg_physical_activity),
-          avgStudyHours: Number(latestWeeklySummary.avg_study_hours),
-          avgSocialMediaHours: Number(latestWeeklySummary.avg_social_media_hours),
-          stressTrend: getTrendPercentage(latestSevenItems, (item) => item.stressScore),
-          sleepTrend: getTrendPercentage(latestSevenItems, (item) =>
-            getNumberField(item.activity, "sleep_hours", "sleepHours"),
-          ),
-          taskLoadTrend: getTrendPercentage(latestSevenItems, (item) =>
-            getNumberField(item.activity, "assignment_load", "assignmentLoad"),
-          ),
-          physicalActivityTrend: getTrendPercentage(latestSevenItems, (item) =>
-            getNumberField(item.activity, "physical_activity_minutes", "physicalActivityMinutes"),
-          ),
-        };
-
-        const range = formatDateRange(latestWeeklySummary.period_start, latestWeeklySummary.period_end, t.DashboardDateLocale);
-        setDateRange(range);
-      } else {
-        weeklySummary = {
-          avgStressScore: Math.round(getAverage(latestSevenItems, (item) => item.stressScore)),
-          avgSleepHours: getAverage(latestSevenItems, (item) =>
-            getNumberField(item.activity, "sleep_hours", "sleepHours"),
-          ),
-          avgAssignmentLoad: getAverage(latestSevenItems, (item) =>
-            getNumberField(item.activity, "assignment_load", "assignmentLoad"),
-          ),
-          avgDeadlinePressure: getAverage(latestSevenItems, (item) =>
-            getNumberField(item.activity, "deadline_pressure", "deadlinePressure"),
-          ),
-          avgPhysicalActivity: getAverage(latestSevenItems, (item) =>
-            getNumberField(item.activity, "physical_activity_minutes", "physicalActivityMinutes"),
-          ),
-          avgStudyHours: getAverage(latestSevenItems, (item) =>
-            getNumberField(item.activity, "study_hours", "studyHours"),
-          ),
-          avgSocialMediaHours: getAverage(latestSevenItems, (item) =>
-            getNumberField(item.activity, "social_media_hours", "socialMediaHours"),
-          ),
-          stressTrend: getTrendPercentage(latestSevenItems, (item) => item.stressScore),
-          sleepTrend: getTrendPercentage(latestSevenItems, (item) =>
-            getNumberField(item.activity, "sleep_hours", "sleepHours"),
-          ),
-          taskLoadTrend: getTrendPercentage(latestSevenItems, (item) =>
-            getNumberField(item.activity, "assignment_load", "assignmentLoad"),
-          ),
-          physicalActivityTrend: getTrendPercentage(latestSevenItems, (item) =>
-            getNumberField(item.activity, "physical_activity_minutes", "physicalActivityMinutes"),
-          ),
-        };
-
-        if (latestSevenItems.length > 0) {
-          const startStr = latestSevenItems[latestSevenItems.length - 1].datetime || latestSevenItems[latestSevenItems.length - 1].prediction?.prediction_date;
-          const endStr = latestSevenItems[0].datetime || latestSevenItems[0].prediction?.prediction_date;
-          const range = formatDateRange(startStr, endStr, t.DashboardDateLocale);
-          setDateRange(range);
-        } else {
-          setDateRange("");
-        }
-      }
-
-      const chartData = [...latestSevenItems].reverse().map((item) => {
-        const itemDate = item.prediction?.prediction_date || item.datetime;
-        const date = new Date(itemDate);
-
+      // ── Chart data ────────────────────────────────────────────────────
+      const chartData = sortedPreds.map((p) => {
+        const rawScore = Number(p.stress_score);
+        const score = rawScore <= 1 ? Math.round(rawScore * 100) : Math.round(rawScore);
+        const date = new Date(p.created_at || p.prediction_date);
         return {
-          day: date.toLocaleDateString(t.DashboardDateLocale, {
-            day: "numeric",
-            month: "short",
-          }),
-          value: item.stressScore,
+          day: date.toLocaleDateString(t.DashboardDateLocale, { day: "numeric", month: "short" }),
+          value: score,
           hasData: true,
         };
       });
 
-      const intensityCounts = latestSevenItems.reduce(
-        (counts, item) => {
-          if (item.stressScore >= 70) {
-            counts.high += 1;
-          } else if (item.stressScore >= 40) {
-            counts.medium += 1;
-          } else {
-            counts.low += 1;
-          }
-
-          return counts;
+      // ── Stress intensity distribution ─────────────────────────────────
+      const intensityCounts = sortedPreds.reduce(
+        (acc, p) => {
+          const score = Number(p.stress_score) <= 1
+            ? Number(p.stress_score) * 100
+            : Number(p.stress_score);
+          if (score >= 70) acc.high += 1;
+          else if (score >= 40) acc.medium += 1;
+          else acc.low += 1;
+          return acc;
         },
-        { high: 0, medium: 0, low: 0 },
+        { high: 0, medium: 0, low: 0 }
       );
-      const totalIntensity = latestSevenItems.length || 1;
+      const total = sortedPreds.length || 1;
 
-      let latestDatabaseInsight = null;
-      let databaseRecommendations = [];
-
-      latestDatabaseInsight = await fetchLatestDatabaseInsight();
-      databaseRecommendations = await fetchLatestDatabaseRecommendations();
-
-      setInsightData({ latestActivity, weeklySummary, dataCount: latestSevenItems.length });
-      setNarrativeInsight(latestDatabaseInsight);
-      setWeeklyActivityData(chartData);
-      setStressIntensityData([
-        { name: t.HighText, value: Math.round((intensityCounts.high / totalIntensity) * 100) },
-        { name: t.MediumText, value: Math.round((intensityCounts.medium / totalIntensity) * 100) },
-        { name: t.LowText, value: Math.round((intensityCounts.low / totalIntensity) * 100) },
-      ]);
-      setAcademicConditionData([
+      // ── Academic condition bar data ───────────────────────────────────
+      const academicBars = [
         {
           label: t.InsightsStudyTimeLabel,
           value: `${weeklySummary.avgStudyHours.toFixed(1)} ${t.HourText}`,
@@ -311,72 +195,89 @@ function InsightPage() {
           label: t.InsightsTaskLoadLabel,
           value: `${weeklySummary.avgAssignmentLoad.toFixed(0)}%`,
           width: `${Math.min(weeklySummary.avgAssignmentLoad, 100)}%`,
-          color: weeklySummary.avgAssignmentLoad >= 70 ? "bg-red-300" : weeklySummary.avgAssignmentLoad >= 40 ? "bg-yellow-300" : "bg-green-400",
+          color:
+            weeklySummary.avgAssignmentLoad >= 70
+              ? "bg-red-300"
+              : weeklySummary.avgAssignmentLoad >= 40
+              ? "bg-yellow-300"
+              : "bg-green-400",
         },
         {
           label: t.InsightsDeadlinePressureLabel,
           value: `${weeklySummary.avgDeadlinePressure.toFixed(0)}%`,
           width: `${Math.min(weeklySummary.avgDeadlinePressure, 100)}%`,
-          color: weeklySummary.avgDeadlinePressure >= 70 ? "bg-red-300" : weeklySummary.avgDeadlinePressure >= 40 ? "bg-yellow-300" : "bg-green-400",
+          color:
+            weeklySummary.avgDeadlinePressure >= 70
+              ? "bg-red-300"
+              : weeklySummary.avgDeadlinePressure >= 40
+              ? "bg-yellow-300"
+              : "bg-green-400",
         },
         {
           label: t.InsightsPhysicalActivityLabel,
           value: `${weeklySummary.avgPhysicalActivity.toFixed(0)} ${t.MinuteText}`,
           width: `${Math.min((weeklySummary.avgPhysicalActivity / 60) * 100, 100)}%`,
-          color: weeklySummary.avgPhysicalActivity >= 30 ? "bg-green-400" : weeklySummary.avgPhysicalActivity >= 15 ? "bg-yellow-300" : "bg-red-300",
+          color:
+            weeklySummary.avgPhysicalActivity >= 30
+              ? "bg-green-400"
+              : weeklySummary.avgPhysicalActivity >= 15
+              ? "bg-yellow-300"
+              : "bg-red-300",
         },
         {
           label: t.InsightsAverageSleepLabel,
           value: `${weeklySummary.avgSleepHours.toFixed(1)} ${t.HourText}`,
           width: `${Math.min((weeklySummary.avgSleepHours / 8) * 100, 100)}%`,
-          color: weeklySummary.avgSleepHours >= 7 ? "bg-green-400" : weeklySummary.avgSleepHours >= 5 ? "bg-yellow-300" : "bg-red-300",
+          color:
+            weeklySummary.avgSleepHours >= 7
+              ? "bg-green-400"
+              : weeklySummary.avgSleepHours >= 5
+              ? "bg-yellow-300"
+              : "bg-red-300",
         },
-      ]);
-      setTodayRecommendations(databaseRecommendations);
+      ];
 
+      // ── Commit state ──────────────────────────────────────────────────
+      setInsightData({ weeklySummary, dataCount: sortedPreds.length });
+      setNarrativeInsight(insight);
+      setWeeklyActivityData(chartData);
+      setStressIntensityData([
+        { name: t.HighText, value: Math.round((intensityCounts.high / total) * 100) },
+        { name: t.MediumText, value: Math.round((intensityCounts.medium / total) * 100) },
+        { name: t.LowText, value: Math.round((intensityCounts.low / total) * 100) },
+      ]);
+      setAcademicConditionData(academicBars);
+      setTodayRecommendations(recommendations);
     } catch (err) {
-      console.error("Failed to fetch insights data:", err);
+      console.error("Failed to fetch summary data:", err);
       setError(err.response?.data?.message || err.message || t.InsightsFetchError);
     } finally {
-      if (showLoading) {
-        setLoading(false);
-      }
+      setLoading(false);
     }
   }, [t]);
 
   useEffect(() => {
-    let active = true;
-    const execute = async () => {
-      await Promise.resolve();
-      if (active) {
-        fetchInsightsData();
-      }
-    };
-    execute();
-    return () => {
-      active = false;
-    };
-  }, [fetchInsightsData]);
+    fetchSummaryData();
+  }, [fetchSummaryData]);
 
-
-  // Helper to determine color based on score/level
-  const getScoreColor = (score, type = 'stress') => {
-    if (type === 'stress') {
+  // ── Score color helpers ───────────────────────────────────────────────────
+  const getScoreColor = (score, type = "stress") => {
+    if (type === "stress") {
       if (score >= 70) return "text-red-400";
       if (score >= 40) return "text-orange-400";
       return "text-emerald-400";
     }
-    if (type === 'sleep') {
-      if (score >= 7) return "text-emerald-400"; // Good sleep
-      if (score >= 5) return "text-orange-400"; // Moderate sleep
-      return "text-red-400"; // Low sleep
+    if (type === "sleep") {
+      if (score >= 7) return "text-emerald-400";
+      if (score >= 5) return "text-orange-400";
+      return "text-red-400";
     }
-    if (type === 'activity') {
-      if (score >= 45) return "text-emerald-400"; // Good activity (e.g., 45 mins)
+    if (type === "activity") {
+      if (score >= 45) return "text-emerald-400";
       if (score >= 20) return "text-orange-400";
       return "text-red-400";
     }
-    if (type === 'load') { // For assignment load, higher is worse
+    if (type === "load") {
       if (score >= 70) return "text-red-400";
       if (score >= 40) return "text-orange-400";
       return "text-emerald-400";
@@ -384,27 +285,25 @@ function InsightPage() {
     return "text-gray-400";
   };
 
-  // Helper to determine trend indicator
-  const getTrendIndicator = useCallback((trendValue) => {
-    if (trendValue > 0) return t.InsightsTrendUp;
-    if (trendValue < 0) return t.InsightsTrendDown;
-    return t.InsightsTrendStable;
-  }, [t]);
+  const getTrendIndicator = useCallback(
+    (trendValue) => {
+      if (trendValue > 0) return t.InsightsTrendUp;
+      if (trendValue < 0) return t.InsightsTrendDown;
+      return t.InsightsTrendStable;
+    },
+    [t]
+  );
 
-  // Map dashboardData to metricsData for StatsCard
+  // ── Metrics cards data ───────────────────────────────────────────────────
   const metricsData = useMemo(() => {
     if (!insightData) return [];
-
-    const latestActivity = insightData.latestActivity;
-    const weeklySummary = insightData.weeklySummary;
-    const latestStressScore = getNumberField(latestActivity, "stress_score", "stressScore");
-
+    const { weeklySummary } = insightData;
     return [
       {
         title: t.StressScoreTitle,
         value: weeklySummary.avgStressScore,
         maxScore: 100,
-        color: getScoreColor(weeklySummary.avgStressScore, 'stress'),
+        color: getScoreColor(weeklySummary.avgStressScore, "stress"),
         subtitle: t.AverageText,
         trend: weeklySummary.stressTrend,
       },
@@ -412,7 +311,7 @@ function InsightPage() {
         title: t.LastNightSleepTitle,
         value: Number(weeklySummary.avgSleepHours.toFixed(1)),
         maxScore: 10,
-        color: getScoreColor(weeklySummary.avgSleepHours, 'sleep'),
+        color: getScoreColor(weeklySummary.avgSleepHours, "sleep"),
         subtitle: `${weeklySummary.avgSleepHours.toFixed(1)} ${t.HourText} ${getTrendIndicator(weeklySummary.sleepTrend)}`,
         trend: weeklySummary.sleepTrend,
       },
@@ -420,7 +319,7 @@ function InsightPage() {
         title: t.TaskLoadTitle,
         value: Math.round(weeklySummary.avgAssignmentLoad),
         maxScore: 100,
-        color: getScoreColor(weeklySummary.avgAssignmentLoad, 'load'),
+        color: getScoreColor(weeklySummary.avgAssignmentLoad, "load"),
         subtitle: `${weeklySummary.avgAssignmentLoad.toFixed(0)}% ${getTrendIndicator(weeklySummary.taskLoadTrend)}`,
         trend: weeklySummary.taskLoadTrend,
       },
@@ -428,17 +327,22 @@ function InsightPage() {
         title: t.PhysicalActivityTitle,
         value: Math.round(weeklySummary.avgPhysicalActivity),
         maxScore: 60,
-        color: getScoreColor(weeklySummary.avgPhysicalActivity, 'activity'),
+        color: getScoreColor(weeklySummary.avgPhysicalActivity, "activity"),
         subtitle: `${weeklySummary.avgPhysicalActivity.toFixed(0)} ${t.MinuteText} ${getTrendIndicator(weeklySummary.physicalActivityTrend)}`,
         trend: weeklySummary.physicalActivityTrend,
       },
     ];
-  }, [getTrendIndicator, insightData, t]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [insightData, t, getTrendIndicator]);
 
+  // ── Loading / Error ──────────────────────────────────────────────────────
   if (loading) {
     return (
       <Layout title={t.InsightsPageTitle} name={user.fullname} role={user.role}>
-        <div className="text-center py-10 theme-muted">{t.InsightsLoading}</div>
+        <div className="flex flex-col items-center justify-center py-20 gap-4">
+          <div className="w-10 h-10 rounded-full border-4 border-blue-500 border-t-transparent animate-spin" />
+          <p className="theme-muted text-sm">Memuat summary...</p>
+        </div>
       </Layout>
     );
   }
@@ -451,27 +355,22 @@ function InsightPage() {
     );
   }
 
-  const latestInsightDescription = narrativeInsight?.insight_text || "data belum ada";
+  const latestInsightDescription = narrativeInsight?.insight_text || "Data summary belum tersedia.";
   const narrativeSubtitle = narrativeInsight?.created_at
-    ? `${t.InsightsLatestFromDatabase} - ${new Date(narrativeInsight.created_at).toLocaleDateString(t.DashboardDateLocale, {
-        day: "numeric",
-        month: "long",
-        year: "numeric",
-      })}`
-    : "data belum ada";
+    ? `${t.InsightsLatestFromDatabase} – ${new Date(narrativeInsight.created_at).toLocaleDateString(
+        t.DashboardDateLocale,
+        { day: "numeric", month: "long", year: "numeric" }
+      )}`
+    : "Belum ada insight AI yang tersimpan.";
 
   return (
     <Layout title={t.InsightsPageTitle} name={user.fullname} role={user.role}>
       <div className="space-y-6">
-        {/* Header Section */}
+        {/* Header */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
           <div>
-            <p className="theme-subtle text-xs uppercase mb-2">
-              {t.InsightsEyebrow}
-            </p>
-            <h1 className="theme-text text-3xl md:text-4xl font-bold">
-              {t.InsightsHeroTitle}
-            </h1>
+            <p className="theme-subtle text-xs uppercase mb-2">{t.InsightsEyebrow}</p>
+            <h1 className="theme-text text-3xl md:text-4xl font-bold">{t.InsightsHeroTitle}</h1>
           </div>
           {dateRange && (
             <div className="px-4 py-2 bg-blue-500/10 border border-blue-500/20 rounded-full text-blue-300 text-sm font-semibold self-start md:self-auto">
@@ -515,11 +414,9 @@ function InsightPage() {
           />
         </div>
 
-        {/* Section 5: Prioritas Hari Ini */}
+        {/* Section 5: Rekomendasi */}
         <div>
-          <h2 className="theme-text text-2xl font-bold mb-4">
-            {t.PriorityTodayTitle}
-          </h2>
+          <h2 className="theme-text text-2xl font-bold mb-4">{t.PriorityTodayTitle}</h2>
           <div className="grid lg:grid-cols-2 gap-4">
             {todayRecommendations.length > 0 ? (
               todayRecommendations.map((task, index) => (
@@ -529,7 +426,11 @@ function InsightPage() {
                   description={task.recommendation_text}
                   level={task.priority_level}
                   duration=""
-                  stressImpact={task.category ? task.category.charAt(0).toUpperCase() + task.category.slice(1) : ""}
+                  stressImpact={
+                    task.category
+                      ? task.category.charAt(0).toUpperCase() + task.category.slice(1)
+                      : ""
+                  }
                 />
               ))
             ) : (
@@ -537,11 +438,9 @@ function InsightPage() {
             )}
           </div>
         </div>
-
       </div>
     </Layout>
   );
 }
 
 export default InsightPage;
-
