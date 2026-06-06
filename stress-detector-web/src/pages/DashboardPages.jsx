@@ -309,7 +309,7 @@ function DashboardPage() {
         display: `${physicalActivity} ${t.MinuteText}`,
         width: Math.min((physicalActivity / 60) * 100, 100),
         color:
-          physicalActivity >= 30
+          physicalActivity > 45
             ? "bg-green-500"
             : physicalActivity >= 15
             ? "bg-yellow-500"

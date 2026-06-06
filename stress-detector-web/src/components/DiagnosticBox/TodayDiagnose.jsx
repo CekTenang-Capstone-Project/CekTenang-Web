@@ -67,7 +67,7 @@ function TodayDiagnose({items, studyTime, taskLoad, deadlinePressure, physicalAc
           display: `${value} ${t.MinuteText}`,
           width: Math.min((value / 60) * 100, 100),
           color:
-            value >= 30
+            value > 45
               ? "bg-green-500"
               : value >= 15
               ? "bg-yellow-500"
