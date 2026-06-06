@@ -4,7 +4,6 @@ const getStatusOptions = (t) => [
   { value: "all", label: t.ActivityHistoryStatusAll },
   { value: "selesai", label: t.ActivityHistoryStatusCompleted },
   { value: "draft", label: t.ActivityHistoryStatusDraft },
-  { value: "terlambat", label: t.ActivityHistoryStatusLate },
 ];
 
 const getDateOptions = (t) => [
