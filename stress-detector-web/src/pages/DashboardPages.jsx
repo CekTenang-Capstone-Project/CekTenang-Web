@@ -247,7 +247,6 @@ function DashboardPage() {
   const moodScore = getNumberField(currentActivity, "mood_score", "moodScore");
   const fatigueLevel = getNumberField(currentActivity, "fatigue_level", "fatigueLevel");
   const screenTime = getNumberField(currentActivity, "screen_time_hours", "screenTimeHours");
-  const socialMedia = getNumberField(currentActivity, "social_media_hours", "socialMediaHours");
   const physicalActivity = getNumberField(currentActivity, "physical_activity_minutes", "physicalActivityMinutes");
   const sleepHours = getNumberField(currentActivity, "sleep_hours", "sleepHours");
   const conditionItems = [
@@ -283,22 +282,9 @@ function DashboardPage() {
         display: `${screenTime} ${t.HourText}`,
         width: Math.min((screenTime / 24) * 100, 100),
         color:
-          screenTime < 4
+          screenTime < 3
             ? "bg-green-500"
-            : screenTime < 8
-            ? "bg-yellow-500"
-            : "bg-red-500",
-      },
-    },
-    {
-      label: t.SocialMediaTitle,
-      metric: {
-        display: `${socialMedia} ${t.HourText}`,
-        width: Math.min((socialMedia / 24) * 100, 100),
-        color:
-          socialMedia < 2
-            ? "bg-green-500"
-            : socialMedia < 4
+            : screenTime <= 6
             ? "bg-yellow-500"
             : "bg-red-500",
       },
